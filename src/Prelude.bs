@@ -124,16 +124,17 @@ def impure inline _cleann() {
   dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
 }
 
+def impure _ploop3() [C,C,C] -> [] {
+  <<[_out_digit > _out_digit <] > [_out_digit] > _out_digit <<<
+}
+
 def printc_ord() [C] -> [C] {
-  dupc
-  dupc pushc(100) swapc divc
-  if (dupc c_to_b) { _print_digit }
-  popc pushc(100) swapc modc
-  dupc pushc( 10) swapc divc
-  if (dupc c_to_b) { _print_digit }
-  popc pushc( 10) swapc modc
-  _print_digit
-  popc
+  dupc dupc dupc
+  pushc(100) swapc divc rollc3(1)
+  pushc(100) swapc modc
+  pushc( 10) swapc divc swapc
+  pushc( 10) swapc modc
+  _ploop3
 }
 
 def impure printi() [I] -> [I] {
