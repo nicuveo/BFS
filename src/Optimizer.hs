@@ -12,12 +12,6 @@ parses it, and performs a small number of simple optimizations.
   reordered, for simplification
 * all code after the last input / output is dead code
 
-Where this optimizer can be slow is when reordering a sequence of cell
-assignment, as it tries to pick the shortest path that goes through
-all the cells that need to be modified, which is equivalent to the
-traveling salesman problem, and implies testing all
-possibilities... In practice this shouldn't be an issue.
-
 -}
 
 module Optimizer (optimize) where
@@ -26,8 +20,9 @@ module Optimizer (optimize) where
 
 -- imports
 
-import           Data.List   (dropWhileEnd, foldl', permutations)
-import qualified Data.Map    as M
+import           Data.Function
+import           Data.List     (dropWhileEnd, foldl', minimumBy)
+import qualified Data.Map      as M
 import           Text.Parsec
 import           Text.Printf
 
@@ -61,7 +56,7 @@ instance Show Code where
   show Output           = "."
   show (Loop c)         = printf "[%s]" $ show c
   show (Assignment e a) = res ++ move pos e
-    where (res, pos) = foldl' step ("", 0) $ bestOrder $ M.toList $ M.filter (/= Relative 0) a
+    where (res, pos) = shortest $ M.filter (/= Relative 0) a
           step (s, p) (np,c) = (s ++ move p np ++ change c, np)
           move x y
             | y >= x    = replicate (y-x) '>'
@@ -70,9 +65,7 @@ instance Show Code where
           change (Relative x)
             | x >= 0    = replicate   x  '+'
             | otherwise = replicate (-x) '-'
-          bestOrder s   = snd $ minimum [(sumDistance p, p) | p <- permutations s]
-          sumDistance p = let (d, endP) = foldl' (\(x,cp)(np,_)->(x+abs(np-cp),np)) (0,0) p
-                          in d + abs(endP-e)
+          shortest s    = minimumBy (compare `on` length . fst) $ foldl' step ("", 0) <$> [M.toAscList s, M.toDescList s]
 
 
 combine :: Value -> Value -> Value
