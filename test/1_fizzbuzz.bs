@@ -1,0 +1,43 @@
+const C upper_bound = 20
+
+def inline below_upper_bound() [C] -> [C,B] {
+    dupc pushc(upper_bound) swapc lec
+}
+
+def impure can_be_divided_by(C n) {
+    // marking it as impure to avoid the conversion to boolean
+    pushc(n) swapc modc not
+}
+
+def main() {
+    pushc(1)
+    while (below_upper_bound) {
+        dupc
+        dupc
+        can_be_divided_by(3)
+        swapc
+        can_be_divided_by(5)
+        pushc(2)
+        mulc
+        addc
+
+        if (eqc_(3)) {
+            prints("fizzbuzz!\n")
+        }
+        if (eqc_(2)) {
+            prints("buzz!\n")
+        }
+        if (eqc_(1)) {
+            prints("fizz!\n")
+        }
+        if (eqc_(0)) {
+            swapc
+            printc_ord prints("\n")
+            swapc
+        }
+
+        popc
+        inc(1)
+    }
+    popc
+}
