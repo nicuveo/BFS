@@ -42,7 +42,7 @@ main = do
   (diags, mObjs)  <- compile fileResolver source
   mapM_ print diags
   case mObjs of
-    Nothing -> putStrLn "Aborting."
+    Nothing -> putStrLn "Aborting." >> exitFailure
     Just o  -> do
       let assembler = if dense then assembleDensely else assembleVerbosely
       putStr =<< either error return (assembler o)
