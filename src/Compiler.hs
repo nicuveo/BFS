@@ -58,7 +58,7 @@ compile fs fn = do
     Left  _ -> return (d, Nothing)
   where deps = Dependencies fs
         st   = CompilerState M.empty builtinFunctions
-        expr = include (WL undefined "Prelude") >> include (WL undefined fn)
+        expr = include (WL undefined "Prelude") >> include (WL CommandLineArgument fn)
 
 eval :: ObjectMap -> Type -> Expression -> Either Error Value
 eval _ kind (LiteralString s) = case kind of
