@@ -65,7 +65,7 @@ dec = Function "dec" False True [(BFChar, "x")] [BFChar] [BFChar] dec_
 prints :: Function
 prints = Function "prints" False False [(BFString, "s")] [] [] dec_
   where dec_ [("s", VString s)] = builtinLocation . RawBrainfuck <$>
-          [ ">"
+          [ ">[-]"
           , snd $ foldl' nextChar (0, "") $ ord <$> s
           , "<"
           ]
