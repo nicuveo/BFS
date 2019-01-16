@@ -47,7 +47,7 @@ instance Show Error where
   show (CharLiteralError   k x)                        = printf "type error: char constant %c cannot cast to %s"   x $ show k
   show (StringLiteralError k x)                        = printf "type error: string constant %s cannot cast to %s" x $ show k
   show (ImplicitCastError  d s)                        = printf "type error: cannot cast %v to %v" (show s) $ show d
-  show (FunctionTypeDeclarationError f ks)             = printf "error: inferred function result type for function %s (%s) is different from declared result type (%s)" (funcName f) (show $ funcOutput f) $ show ks
+  show (FunctionTypeDeclarationError f ks)             = printf "error: inferred function result stack for function %s (%s) is different from declared result stack (%s)" (funcName f) (show ks) $ show $ funcOutput f
   show (FunctionCallWrongArgumentsNumberError f n)     = printf "error: function %s expects %d arguments, but only %d given" (funcName f) (length $ funcArgs f) n
   show (FunctionCallWrongArgumentTypeError f (e, x) a) = printf "type error: in call to function %s, arg %s expects a value of type %s, but got a value of type %s" (funcName f) x (show e) $ show a
   show (FunctionCallStackTypeError f x)                = printf "type error: in call to function %s, expecting the stack to be %s, but was %s" (funcName f) (show $ funcInput f) $ show x
