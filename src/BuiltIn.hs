@@ -33,14 +33,14 @@ builtinFunctions = foldl' insertFunc M.empty $ [pushc, pushi, set, inc, dec, pri
 
 pushc :: Function
 pushc = Function "pushc" False True [(BFChar, "c")] [] [BFChar] pushc_
-  where pushc_ [("c", VChar c)] = [builtinLocation $ RawBrainfuck $ '>' : replicate (ord c) '+']
+  where pushc_ [("c", VChar c)] = [builtinLocation $ RawBrainfuck $ ">[-]" ++ replicate (ord c) '+']
         pushc_ _ = error "ICE"
 
 pushi :: Function
 pushi = Function "pushi" False True [(BFInt, "x")] [] [BFInt] pushi_
-  where pushi_ [("x", VInt x)] = [builtinLocation $ RawBrainfuck $ concat ['>' : replicate i '+' | i <- decompose x]]
+  where pushi_ [("x", VInt x)] = [builtinLocation $ RawBrainfuck $ concat [">[-]" ++ replicate i '+' | i <- decompose x]]
         pushi_ _ = error "ICE"
-        decompose x = [ mod (div x 16777216) 256 .|. (if x < 0 then 127 else 0)
+        decompose x = [ mod (div x 16777216) 256 .|. (if x < 0 then 128 else 0)
                       , mod (div x    65536) 256
                       , mod (div x      256) 256
                       , mod      x           256
@@ -87,16 +87,16 @@ rollFunctions   = rollcn : rollin : concat [[rollc n, rolli n] | n <- [2 .. 9]]
         roll  _ _ = error "ICE"
 
 rollCode :: Int -> Int -> [WithLocation Instruction]
-rollCode n s = builtinLocation . RawBrainfuck <$> [ '>' : replicate s '+'
-                                           , "[-<[->>+<<]"
-                                           , concat $ replicate (n-1) "<[->+<]"
-                                           , replicate n '>'
-                                           , ">[-"
-                                           , replicate n '<'
-                                           , "<+>"
-                                           , replicate n '>'
-                                           , "]<]<"
-                                           ]
+rollCode n s = builtinLocation . RawBrainfuck <$> [ ">[-]" ++ replicate s '+'
+                                                  , "[-<[->>+<<]"
+                                                  , concat $ replicate (n-1) "<[->+<]"
+                                                  , replicate n '>'
+                                                  , ">[-"
+                                                  , replicate n '<'
+                                                  , "<+>"
+                                                  , replicate n '>'
+                                                  , "]<]<"
+                                                  ]
 
 
 dupFunctions :: [Function]
