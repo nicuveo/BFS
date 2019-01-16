@@ -21,8 +21,8 @@ fileResolver filename  = do
             else filename ++ ".bs"
   dfe <- doesFileExist rfn
   if dfe
-    then return Nothing
-    else Just . (rfn,) <$> readFile rfn
+    then Just . (rfn,) <$> readFile rfn
+    else return Nothing
 
 
 help :: IO a
