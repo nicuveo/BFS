@@ -1,0 +1,58 @@
+def impure check(S op) {
+    >>>>>>>>>>>>
+    [[-] prints("ERROR: garbage remaining in +12 after ") prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +11 after ") prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +10 after ") prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +9 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +8 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +7 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +6 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +5 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +4 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +3 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +2 after ")  prints(op) prints("\n")] <
+    [[-] prints("ERROR: garbage remaining in +1 after ")  prints(op) prints("\n")] <
+}
+
+def test_print(I x) {
+    pushi(x)
+    printi check("printi")
+    prints("\n")
+    popi
+}
+
+def test_add(I x, I y) {
+    pushi(x) printi prints(" + ")
+    pushi(y) printi prints(" = ")
+    addi check("addi")
+    printi prints("\n")
+    popi
+}
+
+def test_sub(I x, I y) {
+    pushi(x) printi prints(" - ")
+    pushi(y) printi prints(" = ")
+    swapi
+    subi check("subi")
+    printi prints("\n")
+    popi
+}
+
+def main() {
+    // // printing
+    test_print(0x80000000)
+    test_print(0xFFFFFFFF)
+    test_print(0x7FFFFFFF)
+
+    // adding
+    test_add(0x0000FFFF, 1)
+    test_add(0x00FFFFFF, 0x00FFFFFF)
+
+    // adding
+    test_sub(10, 20)
+    test_sub(0x1000, 1)
+    test_sub(-42, -84)
+    test_sub(0xFFFFF000, -1)
+    test_sub( 42, -10)
+    test_sub(-10,  42)
+}
