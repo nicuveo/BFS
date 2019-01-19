@@ -99,29 +99,29 @@ def inline _print_digit() [C] -> [C] { dupc inc('0') printc_chr popc }
 def inline _out_digit() [C] -> [C] { inc('0') printc_chr clear }
 
 def impure inline _cleanp() {
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  dupc gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
 }
 
 def impure inline _cleann() {
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  dupc gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
 }
 
 def impure _ploop3() [C,C,C] -> [] {
@@ -143,23 +143,33 @@ def impure printi() [I] -> [I] {
   if (eqc_(2)) {
     prints("-") clear
     <<<< dec(128) >>>>
-           >>>++>+>++++>+++++++>   ++++>++++++++>    +++>++++++> ++++>++++++++             <<<<<<<<<<<<
-    <[-   >>>>  > >    >       >       >        >       >      >     >       - _cleann    <<<<<<<<<<<<<]
-    <[-  >>>>>  > >    >       >       >        >       >    -->----->  ------ _cleann   <<<<<<<<<<<<<<]
-    <[- >>>>>>  > >    >       >       >  ------>  -----> ----->  --->  ------ _cleann  <<<<<<<<<<<<<<<]
-    <[->>>>>>>  > >   -> ------>-------> ------->------->    -->    ->  ------ _cleann <<<<<<<<<<<<<<<<]
-    >>>
+           >>>>++>+>++++>+++++++>   ++++>++++++++>    +++>++++++> ++++>++++++++             <<<<<<<<<<<<<
+    <[-   >>>>>  > >    >       >       >        >       >      >     >       - _cleann    <<<<<<<<<<<<<<]
+    <[-  >>>>>>  > >    >       >       >        >       >    -->----->  ------ _cleann   <<<<<<<<<<<<<<<]
+    <[- >>>>>>>  > >    >       >       >  ------>  -----> ----->  --->  ------ _cleann  <<<<<<<<<<<<<<<<]
+    <[->>>>>>>>  > >   -> ------>-------> ------->------->    -->    ->  ------ _cleann <<<<<<<<<<<<<<<<<]
+    >>>>
   }
   if (eqc_(1)) {
     clear
-    <[-   >>>>>> >      >       >       >       >     >     >     + _cleanp    <<<<<<<<<<<<<]
-    <[-  >>>>>>> >      >       >       >       >   ++>+++++>++++++ _cleanp   <<<<<<<<<<<<<<]
-    <[- >>>>>>>> >      >       > ++++++>  +++++>+++++>  +++>++++++ _cleanp  <<<<<<<<<<<<<<<]
-    <[->>>>>>>>>+>++++++>+++++++>+++++++>+++++++>   ++>    +>++++++ _cleanp <<<<<<<<<<<<<<<<]
-    >>>>>
+    <[-   >>>>>>> >      >       >       >       >     >     >     + _cleanp    <<<<<<<<<<<<<<]
+    <[-  >>>>>>>> >      >       >       >       >   ++>+++++>++++++ _cleanp   <<<<<<<<<<<<<<<]
+    <[- >>>>>>>>> >      >       > ++++++>  +++++>+++++>  +++>++++++ _cleanp  <<<<<<<<<<<<<<<<]
+    <[->>>>>>>>>>+>++++++>+++++++>+++++++>+++++++>   ++>    +>++++++ _cleanp <<<<<<<<<<<<<<<<<]
+    >>>>
   }
-  >>
-  >[_out_digit] >[_out_digit] >[_out_digit] >[_out_digit] >[_out_digit]
-  >[_out_digit] >[_out_digit] >[_out_digit] >[_out_digit] > _out_digit
-  <<<<<<<<<<<<<<<<<
+  >>>
+  >[_out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit <<<<<<<<]
+  >[_out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit <<<<<<<]
+  >[_out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit <<<<<<]
+  >[_out_digit > _out_digit > _out_digit > _out_digit > _out_digit > _out_digit <<<<<]
+  >[_out_digit > _out_digit > _out_digit > _out_digit > _out_digit <<<<]
+  >[_out_digit > _out_digit > _out_digit > _out_digit <<<]
+  >[_out_digit > _out_digit > _out_digit <<]
+  >[_out_digit > _out_digit <]
+  >[_out_digit]
+  > _out_digit
+  <<<<<<<<<<
+  popc popc popc popc
+  popi
 }

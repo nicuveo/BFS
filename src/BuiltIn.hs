@@ -67,7 +67,7 @@ prints = Function "prints" False False [(BFString, "s")] [] [] dec_
   where dec_ [("s", VString s)] = builtinLocation . RawBrainfuck <$>
           [ ">[-]"
           , snd $ foldl' nextChar (0, "") $ ord <$> s
-          , "<"
+          , "[-]<"
           ]
         dec_ _ = error "ICE"
         nextChar (p, output) n
