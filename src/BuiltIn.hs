@@ -79,12 +79,12 @@ rollFunctions :: [Function]
 rollFunctions   = rollcn : rollin : concat [[rollc n, rolli n] | n <- [2 .. 9]]
   where rollcn  = Function "rollcn" False True [(BFInt, "n"), (BFInt, "s")] [] [] $ rolln 1
         rollin  = Function "rollin" False True [(BFInt, "n"), (BFInt, "s")] [] [] $ rolln 4
-        rollc n = Function ("rollc" ++ show n) False True [(BFInt, "s")] (replicate n BFChar) (replicate n BFChar) $ roll n
-        rolli n = Function ("rolli" ++ show n) False True [(BFInt, "s")] (replicate n BFInt ) (replicate n BFInt ) $ roll $ 4 * n
-        rolln k [("n", VInt n), ("s", VInt s)] = rollCode (n*k) s
+        rollc n = Function ("rollc" ++ show n) False True [(BFInt, "s")] (replicate n BFChar) (replicate n BFChar) $ roll 1 n
+        rolli n = Function ("rolli" ++ show n) False True [(BFInt, "s")] (replicate n BFInt ) (replicate n BFInt ) $ roll 4 n
+        rolln k [("n", VInt n), ("s", VInt s)] = rollCode (n*k) $ s*k
         rolln _ _ = error "ICE"
-        roll  n [("s", VInt s)] = rollCode n s
-        roll  _ _ = error "ICE"
+        roll  k n [("s", VInt s)] = rollCode (n*k) $ s*k
+        roll  _ _ _ = error "ICE"
 
 rollCode :: Int -> Int -> [WithLocation Instruction]
 rollCode n s = builtinLocation . RawBrainfuck <$> [ ">[-]" ++ replicate s '+'
