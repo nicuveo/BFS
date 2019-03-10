@@ -9,6 +9,8 @@ if [ $# -ne 0 ]; then
     exit 1
 fi
 
+stack build
+
 for source in *.bs ; do
     testname=${source%.*}
     input=$testname.in
@@ -27,8 +29,8 @@ for source in *.bs ; do
     fi
 
     if [ $ok -eq 1 ] ; then
-        bfc /tmp/$testname.1.bf 2> /dev/null; mv $testname.1 /tmp
-        bfc /tmp/$testname.2.bf 2> /dev/null; mv $testname.2 /tmp
+        bfc /tmp/$testname.1.bf 2> /dev/null; mv a.out /tmp/$testname.1
+        bfc /tmp/$testname.2.bf 2> /dev/null; mv a.out /tmp/$testname.2
 
         cat $input | /tmp/$testname.1 > /tmp/$testname.1.out
         cat $input | /tmp/$testname.2 > /tmp/$testname.2.out
