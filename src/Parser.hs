@@ -184,4 +184,4 @@ keywords = [ inline <$ reserved "inline"
            , impure <$ reserved "impure"
            ]
 
-brainfuckChars = "+-,.<>[]"
+brainfuckChars = "+-,.<>[]#"
