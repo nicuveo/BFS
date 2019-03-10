@@ -6,6 +6,7 @@ import           Data.List
 import           System.Directory
 import           System.Environment
 import           System.Exit
+import           System.IO
 
 import           Assembler
 import           BuiltIn
@@ -26,7 +27,7 @@ fileResolver filename  = do
 
 
 help :: IO a
-help = putStrLn "usage: bfs [-O] file.bs" >> exitFailure
+help = hPutStrLn stderr "usage: bfs [-O] file.bs" >> exitFailure
 
 options :: IO (Bool, String)
 options = do
@@ -40,9 +41,9 @@ main :: IO ()
 main = do
   (dense, source) <- options
   (diags, mObjs)  <- compile fileResolver source
-  mapM_ print diags
+  mapM_ (hPrint stderr) diags
   case mObjs of
-    Nothing -> putStrLn "Aborting." >> exitFailure
+    Nothing -> hPutStrLn stderr "Aborting." >> exitFailure
     Just o  -> do
       let assembler = if dense then assembleDensely else assembleVerbosely
       putStr =<< either error return (assembler o)
