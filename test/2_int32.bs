@@ -1,18 +1,4 @@
-def impure check(S op) {
-    >>>>>>>>>>>>
-    [[-] prints("ERROR: garbage remaining in +12 after ") prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +11 after ") prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +10 after ") prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +9 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +8 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +7 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +6 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +5 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +4 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +3 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +2 after ")  prints(op) prints("\n")] <
-    [[-] prints("ERROR: garbage remaining in +1 after ")  prints(op) prints("\n")] <
-}
+include "common/check"
 
 def test_print(I x) {
     pushi(x)
