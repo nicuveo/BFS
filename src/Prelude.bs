@@ -33,7 +33,6 @@ def impure        divc()       [C,C] -> [C]   { > rollc3(1) dupc2 gec [-<<<+>[->
 def impure        modc()       [C,C] -> [C]   {             dupc2 gec [-<<   [->>+>+<<<]>>>[-<<<+>>>]<[-<->]< dupc2 gec]<<[-]>[-<+>]< }
 def impure        divmodc()    [C,C] -> [C,C] { > rollc3(1) dupc2 gec [-<<<+>[->>+>+<<<]>>>[-<<<+>>>]<[-<->]< dupc2 gec]<<[-]>[-<+>]< }
 
-def impure inline i_to_b()     [I]   -> [B]   { c_to_b mulc c_to_b mulc c_to_b mulc c_to_b }
 def impure inline i_to_c()     [I]   -> [C]   { rollc4(1) popc popc popc }
 
 def        inline nec()        [C,C] -> [B]   { subc c_to_b }
@@ -50,6 +49,13 @@ def        inline lec_(C x)    [C]   -> [C,B] { dupc pushc(x) gec }
 def        inline gec_(C x)    [C]   -> [C,B] { dupc pushc(x) lec }
 def        inline ltc_(C x)    [C]   -> [C,B] { dupc pushc(x) gtc }
 
+def impure i_to_b() [I] -> [B] {
+    [[-]>+<]<
+    [[-]>>+<<]<
+    [[-]>>>+<<<]<
+    [[-]>>>>+<<<<]
+    >>>>[[-]<<<<+>>>>]<<<<
+}
 
 
 // int math
