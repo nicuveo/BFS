@@ -1,7 +1,9 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections    #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Main where
 
+import           Control.Monad.Except
 import           Data.List
 import           System.Directory
 import           System.Environment
@@ -11,8 +13,6 @@ import           System.IO
 import           Assembler
 import           BuiltIn
 import           Compiler
-
-
 
 fileResolver :: String -> IO (Maybe (String, String))
 fileResolver "Prelude" = Just . ("Prelude.bs",) <$> preludeFile
@@ -46,4 +46,4 @@ main = do
     Nothing -> hPutStrLn stderr "Aborting." >> exitFailure
     Just o  -> do
       let assembler = if dense then assembleDensely else assembleVerbosely
-      putStr =<< either error return (assembler o)
+      either error putStr =<< runExceptT (assembler o)

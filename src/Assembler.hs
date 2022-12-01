@@ -17,7 +17,7 @@ import           Object
 import           Optimizer
 
 
-assembleVerbosely :: Monad m => ObjectMap -> m String
+assembleVerbosely :: MonadFail m => ObjectMap -> m String
 assembleVerbosely objs = unlines <$> expandFunc 0 mainFunc []
   where mainFunc = extractFun objs "main"
         postProd = (chunkify =<<) . groupBy bothCode . lines . concat
@@ -27,7 +27,7 @@ assembleVerbosely objs = unlines <$> expandFunc 0 mainFunc []
           | otherwise = chunksOf 80 $ concat s
         indent   = map ("  " ++)
         render v = filter (`notElem` "+-[],.<>") $ intercalate "; " [n ++ "=" ++ show x | (n,x) <- v]
-        expandFunc :: Monad m => Int -> Function -> [(String, Value)] -> m [String]
+        expandFunc :: MonadFail m => Int -> Function -> [(String, Value)] -> m [String]
         expandFunc level func args = do
           when (level > 99) $ fail "stack too deep"
           i <- postProd <$> mapM expandInst (funcBody func args)
@@ -37,7 +37,7 @@ assembleVerbosely objs = unlines <$> expandFunc 0 mainFunc []
           return $ if funcInline func
                    then i
                    else header : i
-          where expandInst :: Monad m => WithLocation Instruction -> m String
+          where expandInst :: MonadFail m => WithLocation Instruction -> m String
                 expandInst (WL _ (RawBrainfuck r)) = return r
                 expandInst (WL _ (FunctionCall g v)) = do
                   let callee = extractFun objs g
@@ -59,14 +59,14 @@ assembleVerbosely objs = unlines <$> expandFunc 0 mainFunc []
                   i <- dropWhileEnd(=='\n') . unlines . indent . postProd <$> mapM expandInst b
                   return $ printf "%s[[-]<\n  if\n%s\n>[-]]<\n" t i
 
-assembleDensely :: Monad m => ObjectMap -> m String
+assembleDensely :: MonadFail m => ObjectMap -> m String
 assembleDensely objs = unlines . chunksOf 120 . optimize . concat <$> expandFunc 0 mainFunc []
   where mainFunc = extractFun objs "main"
-        expandFunc :: Monad m => Int -> Function -> [(String, Value)] -> m [String]
+        expandFunc :: MonadFail m => Int -> Function -> [(String, Value)] -> m [String]
         expandFunc level func args = do
           when (level > 99) $ fail "stack too deep"
           mapM expandInst $ funcBody func args
-          where expandInst :: Monad m => WithLocation Instruction -> m String
+          where expandInst :: MonadFail m => WithLocation Instruction -> m String
                 expandInst (WL _ (RawBrainfuck r)) = return r
                 expandInst (WL _ (FunctionCall g v)) = do
                   let callee = extractFun objs g
@@ -95,4 +95,4 @@ extractParams objs _ argsCaller callee argsCallee =
 extractFun :: ObjectMap -> String -> Function
 extractFun = getFun ... (M.!)
   where getFun (WL _ (FunctionObject f)) = f
-        getFun _ = error "should never happen"
+        getFun _                         = error "should never happen"
