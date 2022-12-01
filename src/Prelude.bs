@@ -74,29 +74,34 @@ def impure subi() [I,I] -> [I] {
   [->>+ dupc not [-<<->>] popc <<]<<<<[->>>>>>                        -<<<<<<]>>>>>>[-<<<<<<+>>>>>>] <[-]               <<
 }
 
-def impure muli() [I,I] -> [I] {
-  >>>>
-  rollcn(12,7) dupc pushc(127) ltc
-  [->>>>+<<<<< dec(128) >] popc
-  rollcn(12,4) dupc pushc(127) ltc
-  [->>>>+<<<<< dec(128) >] popc
-  rollcn(12,5)
-  >>>>>- not [-<<<<< <<<<<<<<<<< set(128) >>>>>>>>>>> >>>>>] <<<<<
-  dupi i_to_b [
-  clear >>>+ swapi subi
-  rollcn(12,4) dupi rollcn(12,4) addi swapi rollcn(12,8)
-  dupi i_to_b ] popc
-  popi popi
-}
-
-
 def inline nei() [I,I] -> [B] { subi i_to_b }
 def inline eqi() [I,I] -> [B] { nei not     }
 
+def muli() [I,I] -> [I] {
+  pushi(0)  // [c,i,r]
+  rolli3(2) // [i,r,c]
+  while(dupi pushi(0) nei) {
+    rolli3(2) // [r,c,i]
+    dupi      // [r,c,i,i]
+    rolli4(3) // [c,i,i,r]
+    addi      // [c,i,r]
+    rolli3(2) // [i,r,c]
+    pushi(1)
+    swapi
+    subi
+  }
+  rolli3(2)
+  popi
+  popi
+}
 
 
-// printing
 
+
+
+// io
+
+def impure inline readc() [C] -> [C] { , }
 def impure inline printc_chr() [C] -> [C] { . }
 def        inline endl()                  { prints("\n") }
 
