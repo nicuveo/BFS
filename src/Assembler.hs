@@ -26,9 +26,9 @@ assembleVerbosely objs =
         pure $ pure (True, [r])
       Loop _ ->
         pure $ pure ( False
-                    , concat [ ["loop ["]
+                    , concat [ ["do ["]
                              , indent $ merge body
-                             , ["]"]
+                             , ["done ]"]
                              ]
                     )
       While _ _ ->
@@ -37,16 +37,16 @@ assembleVerbosely objs =
                              , indent $ merge cond
                              , ["do [[-]<"]
                              , indent $ merge $ body ++ cond
-                             , ["]<"]
+                             , ["done ]<"]
                              ]
                     )
       If _ _ ->
         pure $ pure ( False
-                    , concat [ ["if ("]
+                    , concat [ ["if"]
                              , indent $ merge cond
                              , ["then [[-]<"]
                              , indent $ merge body
-                             , [">[-]]<"]
+                             , ["end >[-]]<"]
                              ]
                     )
       FunctionCall name args -> do
@@ -67,11 +67,17 @@ assembleVerbosely objs =
       l            -> chunksOf 60 $ concat $ concat $ map snd l
     render [] = ""
     render a = printf "(%s)" $ unwords do
-      ((_type, name), value) <- a
-      pure $ filter (`notElem` brainfuckChars) $ name ++ "=" ++ show value
+      ((_type, name), expr) <- a
+      pure $ filter (`notElem` brainfuckChars) $ name ++ case expr of
+        LiteralInt i -> "=" ++ show i
+        LiteralChar c -> "=" ++ show c
+        LiteralString s -> "=" ++ show s
+        ConstantName n
+          | Just (WL _ (ValueObject v)) <- M.lookup n objs -> "=" ++ show v
+          | otherwise -> ""
 
 assembleDensely :: MonadFail m => ObjectMap -> m String
-assembleDensely objs = unlines . chunksOf 120 . optimize <$> translate objs go
+assembleDensely objs = unlines . chunksOf 100 . optimize <$> translate objs go
   where
     go inst (concat -> args) (concat -> body) = case inst of
       RawBrainfuck r   -> pure r
