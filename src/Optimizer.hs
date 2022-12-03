@@ -110,13 +110,16 @@ deleteValue = modify . M.delete
 translateValues :: MonadState LocalState m => Int -> m ()
 translateValues = modify . translate
 
+clearValues :: MonadState LocalState m => m ()
+clearValues = put mempty
+
 restrict :: Int -> Int
 restrict = (`mod` 256)
 
 simplify :: [Code] -> [Code]
-simplify = fst . run
+simplify = flip evalState mempty . fmap catMaybes . traverse step
   where
-    run = flip runState mempty . fmap catMaybes . traverse \case
+    step = \case
       Output ->
         pure $ Just Output
       Input  -> do
@@ -147,8 +150,8 @@ simplify = fst . run
         getValue 0 >>= \case
           Just 0 -> pure Nothing
           _ -> do
-            let (body, values) = run l
-            put values
+            let body = simplify l
+            clearValues
             setValue 0 0
             pure $ Just $ Loop body
     smallestDistance = minimumBy (compare `on` abs)
