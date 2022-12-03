@@ -4,9 +4,8 @@ def inline below_upper_bound() [C] -> [C,B] {
     dupc pushc(upper_bound) swapc lec
 }
 
-def impure can_be_divided_by(C n) {
-    // marking it as impure to avoid the conversion to boolean
-    pushc(n) swapc modc not
+def can_be_divided_by(C n) [C] -> [C] {
+    pushc(n) swapc modc c_to_b not b_to_c
 }
 
 def main() {
