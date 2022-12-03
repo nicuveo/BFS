@@ -1,20 +1,16 @@
-module Object where
+module Object
+  ( Object (..)
+  , ObjectMap
+  ) where
 
+import Data.HashMap.Strict qualified as M
 
+import Grammar
+import Location
 
--- imports
+data Object
+  = FunctionObject Function
+  | ValueObject Value
+  deriving (Show)
 
-import qualified Data.Map as M
-
-import           Grammar
-import           Module
-
-
-
--- object
-
-data Object = FunctionObject Function
-            | ValueObject    Value
-            deriving (Show)
-
-type ObjectMap = M.Map String (WithLocation Object)
+type ObjectMap = M.HashMap String (WithLocation Object)

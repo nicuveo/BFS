@@ -1,86 +1,115 @@
-{- Grammar.hs
+{-|
 
 This file exposes the AST of our made-up language and a few helper
-functions. Elements are stored with their location, for diagnostic
-purposes.
+functions. Elements are stored with their location, for diagnostic purposes.
 
 -}
 
-module Grammar where
+module Grammar
+  ( Collection
+  , Program
+  , Statement (..)
+  , Expression (..)
+  , Instruction (..)
+  , Constant (..)
+  , Purity (..)
+  , Render (..)
+  , Function (..)
+  , Type (..)
+  , Variable
+  , Value (..)
+  , isImpure
+  , anyImpure
+  , typeof
+  ) where
 
+import Data.List   qualified as L
+import Text.Printf
 
+import Location
 
--- imports
-
-import           Data.List
-import           Text.Printf
-
-import           Module
-
-
-
--- types
+--------------------------------------------------------------------------------
+-- ast
 
 type Collection a = [WithLocation a]
 
 type Program = Collection Statement
 
-data Statement = Include      String
-               | ConstantDecl Constant
-               | FunctionDecl Function
-               deriving (Show)
+data Statement
+  = Include String
+  | ConstantDecl Constant
+  | FunctionDecl Function
+  deriving (Show)
 
-data Instruction = FunctionCall String [Expression]
-                 | RawBrainfuck String
-                 | If           (Collection Instruction) (Collection Instruction)
-                 | Loop         (Collection Instruction)
-                 | While        (Collection Instruction) (Collection Instruction)
-                 deriving (Show)
+data Instruction
+  = FunctionCall String [Expression]
+  | RawBrainfuck String
+  | If (Collection Instruction) (Collection Instruction)
+  | Loop (Collection Instruction)
+  | While (Collection Instruction) (Collection Instruction)
+  deriving (Show)
 
-data Expression = ConstantName  String
-                | LiteralString String
-                | LiteralChar   Char
-                | LiteralInt    Int
-                deriving (Show)
+data Expression
+  = ConstantName String
+  | LiteralString String
+  | LiteralChar Char
+  | LiteralInt Int
+  deriving (Show)
 
+data Constant = Constant
+  { constType :: Type
+  , constName :: String
+  , constExpr :: Expression
+  }
+  deriving (Show)
 
-data Constant = Constant { constType :: Type
-                         , constName :: String
-                         , constExpr :: Expression
-                         } deriving (Show)
+data Purity
+  = Pure
+  | Impure
+  deriving (Eq, Show)
 
-data Function = Function { funcName   :: String
-                         , funcPure   :: Bool
-                         , funcInline :: Bool
-                         , funcArgs   :: [Variable]
-                         , funcInput  :: [Type]
-                         , funcOutput :: [Type]
-                         , funcBody   :: [(String, Value)] -> Collection Instruction
-                         }
+data Render
+  = Inline
+  | Block
+  deriving (Eq, Show)
 
-data Type = BFInt
-          | BFChar
-          | BFString
-          | BFBool
-          deriving (Eq)
+data Function = Function
+  { funcName   :: String
+  , funcPurity :: Purity
+  , funcRender :: Render
+  , funcArgs   :: [Variable]
+  , funcInput  :: [Type]
+  , funcOutput :: [Type]
+  , funcBody   :: [(String, Value)] -> Collection Instruction
+  }
 
-data Value = VInt Int
-           | VChar Char
-           | VString String
-           | VBool Bool
-           deriving (Eq)
+data Type
+  = BFInt
+  | BFChar
+  | BFString
+  | BFBool
+  deriving (Eq)
+
+data Value
+  = VInt Int
+  | VChar Char
+  | VString String
+  | VBool Bool
+  deriving (Eq)
 
 type Variable  = (Type, String)
 
-
-
--- show instances
+--------------------------------------------------------------------------------
+-- instances
 
 instance Show Function where
   show f = printf "{%sfunction %s(%s) %s -> %s}" q n a i o
-    where q = unwords $ ["impure" | not $ funcPure f] ++ ["inline" | funcInline f] ++ [""]
+    where q = unwords $
+               ["impure" | Impure <- pure $ funcPurity f] ++
+               ["inline" | Inline <- pure $ funcRender f] ++
+               [""]
           n = funcName f
-          a = intercalate ", " $ show <$> funcArgs f
+          a = L.intercalate ", " $ show <$> funcArgs f
           i = show $ funcInput f
           o = show $ funcOutput f
 
@@ -96,9 +125,8 @@ instance Show Value where
   show (VString s) = show s
   show (VBool   b) = show b
 
-
-
--- helper functions
+--------------------------------------------------------------------------------
+-- functions
 
 isImpure :: Instruction -> Bool
 isImpure (FunctionCall _ _) = False

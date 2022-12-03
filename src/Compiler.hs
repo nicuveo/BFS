@@ -1,4 +1,4 @@
-{- Compiler.hs
+{-|
 
 The "compiler" has one simple job: turn a file into an object map (see
 Module). But given that no real transformation occurs at this point
@@ -18,239 +18,233 @@ stack, and the body of a block must not alter the stack,
 
 -}
 
-{-# LANGUAGE ConstraintKinds  #-}
-{-# LANGUAGE FlexibleContexts #-}
+module Compiler (compile) where
 
-module Compiler (compile, eval) where
+import Control.Monad
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.RWS
+import Data.Foldable
+import Data.Functor         (($>))
+import Data.HashMap.Strict  qualified as M
+import Data.List            (nub, stripPrefix, (\\))
+import Data.These
 
+import BuiltIn
+import Diagnostics
+import Eval
+import Grammar
+import Location
+import Misc
+import Object
+import Parser
 
+--------------------------------------------------------------------------------
+-- top-level wrapper
 
--- imports
+compile :: Monad m => FileResolver m -> String -> m (These Diagnostics ObjectMap)
+compile resolver filename = runCompiler deps do
+  processInclude (WL BuiltIn "Prelude")
+  processInclude (WL CommandLineArgument filename)
+  where
+    deps = Dependencies resolver
 
-import           Control.Monad
-import qualified Control.Monad.Except      as E
-import qualified Control.Monad.Reader      as R
-import qualified Control.Monad.RWS         as A
-import qualified Control.Monad.State       as S
-import           Control.Monad.Trans.Class (lift)
-import qualified Control.Monad.Writer      as W
-import           Data.Char
-import           Data.List                 as L
-import qualified Data.Map                  as M
+--------------------------------------------------------------------------------
+-- internal compiler monad
 
-import           BuiltIn
-import           Diagnostics
-import           Grammar
-import           Misc
-import           Module
-import           Object
-import           Parser
+newtype CompilerT m a
+  = CompilerT { runCompilerT :: ExceptT () (RWST (Dependencies m) Diagnostics CompilerState m) a }
+  deriving
+    ( Applicative
+    , Functor
+    , Monad
+    , MonadError ()
+    , MonadFail
+    , MonadReader (Dependencies m)
+    , MonadState CompilerState
+    , MonadWriter Diagnostics
+    )
 
-
-
--- exported functions
-
-compile :: Monad m => FileResolver m -> String -> m (Diagnostics, Maybe ObjectMap)
-compile fs fn = do
-  (result, s, d) <- A.runRWST (E.runExceptT expr) deps st
-  case result of
-    Right _ -> return (d, Just $ objects s)
-    Left  _ -> return (d, Nothing)
-  where deps = Dependencies fs
-        st   = CompilerState M.empty builtinFunctions
-        expr = include (WL undefined "Prelude") >> include (WL CommandLineArgument fn)
-
-eval :: ObjectMap -> Type -> Expression -> Either Error Value
-eval _ kind (LiteralString s) = case kind of
-  BFString -> Right $ VString s
-  _        -> Left  $ StringLiteralError kind s
-eval _ kind (LiteralChar c) = case kind of
-  BFChar   -> Right $ VChar c
-  BFBool   -> Right $ VBool $ ord c /= 0
-  _        -> Left  $ CharLiteralError kind c
-eval _ kind (LiteralInt  i) = case kind of
-  BFString -> Left  $ IntLiteralError kind i
-  BFChar   -> if i < 0 || i > 255
-              then Left  $ IntLiteralError kind i
-              else Right $ VChar $ chr i
-  BFBool   -> Right $ VBool $ i /= 0
-  BFInt    -> Right $ VInt i
-eval objs kind (ConstantName n) =
-  if n `M.notMember` objs
-  then Left $ ConstantNotFoundError n
-  else case objs M.! n of
-         WL _ (ValueObject val) -> cast val kind
-         wp                     -> Left $ ExpectedValueGotFunctionError n wp
-
-
-
--- compiler monad
+instance MonadTrans CompilerT where
+  lift = CompilerT . lift . lift
 
 type FileResolver m = String -> m (Maybe (String, String))
 
-newtype Dependencies m =
-  Dependencies { fileResolver :: FileResolver m
-               }
+newtype Dependencies m
+  = Dependencies { fileResolver :: FileResolver m }
 
-data CompilerState =
-  CompilerState { moduleCache :: M.Map String ObjectMap
-                , objects     :: ObjectMap
-                }
+data CompilerState = CompilerState
+  { moduleCache :: M.HashMap String ObjectMap
+  , objects     :: ObjectMap
+  }
 
-type CompilerT m = E.ExceptT () (A.RWST (Dependencies m) Diagnostics CompilerState m)
+runCompiler :: Monad m => Dependencies m -> CompilerT m a -> m (These Diagnostics ObjectMap)
+runCompiler deps action = do
+  (result, objects -> objs, diagnostics) <- runRWST (runExceptT $ runCompilerT action) deps baseState
+  pure $ case (result, diagnostics) of
+    (Left _, _)   -> This diagnostics
+    (Right _, []) -> That objs
+    (Right _, _)  -> These diagnostics objs
+  where
+    baseState = CompilerState mempty builtinFunctions
 
+--------------------------------------------------------------------------------
+-- base operations
 
+registerModule :: Monad m => String -> CompilerT m ()
+registerModule name = modify \s -> s { moduleCache = M.insert name (objects s) (moduleCache s) }
 
--- helpers
-
-addModule :: String -> ObjectMap -> CompilerState -> CompilerState
-addModule name object state = state { moduleCache = M.insert name object $ moduleCache state }
-
-addObject :: String -> WithLocation Object -> CompilerState -> CompilerState
-addObject name object state = state { objects = M.insert name object $ objects state }
+registerObject :: Monad m => String -> WithLocation Object -> CompilerT m ()
+registerObject name object = modify \s -> s { objects = M.insert name object $ objects s }
 
 report :: Monad m => WithLocation a -> Error -> CompilerT m ()
-report wp e = W.tell [e <$ wp]
+report wp e = tell [e <$ wp]
 
-reportAndStop :: Monad m => WithLocation a -> Error -> CompilerT m b
-reportAndStop = (>> E.throwError ()) ... report
+fatal :: Monad m => WithLocation a -> Error -> CompilerT m b
+fatal wp e = tell [e <$ wp] >> shortCircuit
 
-getFunction :: ObjectMap -> String -> Either Error Function
-getFunction objs n =
-  case objs M.!? n of
-    Just (WL _ (FunctionObject g)) -> Right g
-    Just wp                        -> Left $ ExpectedFunctionGotValueError n wp
-    Nothing                        -> Left $ FunctionNotFoundError n
+shortCircuit :: Monad m => CompilerT m a
+shortCircuit = throwError ()
 
+retrieveFunction :: Monad m => WithLocation a -> String -> CompilerT m Function
+retrieveFunction wl name = do
+  objs <- gets objects
+  case objs M.!? name of
+    Just (WL _ (FunctionObject g)) -> pure g
+    Just wp -> fatal wl $ ExpectedFunctionGotValueError name wp
+    Nothing -> fatal wl $ FunctionNotFoundError name
 
-
--- step by step analysis of a program
-
-include :: Monad m => WithLocation String -> CompilerT m ()
-include w@(WL _ filename) = do
-  (_, diagnostics) <- W.listen $ do
-    resolver <- R.asks fileResolver
-    state    <- S.get
-    cache    <- S.gets moduleCache
-    mContent <- lift $ lift $ resolver filename
-    case mContent of
-      Nothing               -> W.tell [FileNotFoundError filename <$ w]
-      Just (mName, content) -> when (mName `M.notMember` cache) $
-        case parseProgram mName content of
-          Left diagnostic -> W.tell [diagnostic]
-          Right program   -> do
-            sequence_ $ processStatement <$> program
-            S.modify $ addModule mName $ objects state
-  when (any isError diagnostics) $ E.throwError ()
+--------------------------------------------------------------------------------
+-- step by step analysis
 
 processStatement :: Monad m => WithLocation Statement -> CompilerT m ()
-processStatement (WL l (Include filename)) = include $ WL l filename
-processStatement wp@(WL _ (ConstantDecl n)) = do
-  objs <- S.gets objects
-  let cName = constName n
-  if cName `M.member` objs
-  then report wp $ ConstantAlreadyDefinedError cName $ objs M.! cName
-  else case eval objs (constType n) $ constExpr n of
-    Left  err   -> report wp err
-    Right value -> S.modify $ addObject cName $ ValueObject value <$ wp
-processStatement wp@(WL _ (FunctionDecl f)) = do
-  objs <- S.gets objects
-  let fName = funcName f
-  if fName `M.member` objs
-  then report wp $ FunctionAlreadyDefinedError fName $ objs M.! fName
-  else E.catchError (doTheThing fName objs) $ const $ return ()
-  where doTheThing fName objs = do
-          checkFunction objs $ f <$ wp
-          S.modify $ addObject fName $ FunctionObject f <$ wp
+processStatement wl = case wl of
+  WL l (Include filename) ->
+    processInclude $ WL l filename
+  WL _ (ConstantDecl n) -> do
+    objs <- gets objects
+    let cName = constName n
+    value <- eval objs (constType n) (constExpr n) `onLeft` \err ->
+      fatal wl err
+    when (cName `M.member` objs) $
+      fatal wl $ ConstantAlreadyDefinedError cName $ objs M.! cName
+    registerObject cName $ wl $> ValueObject value
+  WL _ (FunctionDecl f) -> do
+    objs <- gets objects
+    let fName = funcName f
+    when (fName `M.member` objs) $
+      report wl $ FunctionAlreadyDefinedError fName $ objs M.! fName
+    -- we catch any error while processing the function, to return more errors:
+    -- at the level module, we re-throw if any non-warning was issued
+    processFunction (wl $> f) `catchError` \_ -> pure ()
+    registerObject fName $ wl $> FunctionObject f
 
-checkFunction :: Monad m => ObjectMap -> WithLocation Function -> CompilerT m ()
-checkFunction objs wp@(WL _ f) = do
+processInclude :: Monad m => WithLocation String -> CompilerT m ()
+processInclude w@(WL _ filename) = do
+  (_, diagnostics) <- listen $ do
+    resolver <- asks fileResolver
+    (name, content) <- lift (resolver filename) `onNothingM`
+      fatal w (FileNotFoundError filename)
+    cache <- gets moduleCache
+    unless (name `M.member` cache) do
+      program <- parseProgram name content `onLeft` \e ->
+        tell [e] >> shortCircuit
+      traverse_ processStatement program
+      registerModule name
+  when (any isError diagnostics) $
+    shortCircuit
+
+processFunction :: Monad m => WithLocation Function -> CompilerT m ()
+processFunction wp@(WL _ f) = do
   let argNames = snd <$> funcArgs f
       dupNames = argNames \\ nub argNames
-      body     = funcBody f $ error "ICE: tried to compile a built-in function"
-  if isPure && anyImpure body
-  then report wp $ PureFunctionsContainsImpureCodeError $ funcName f
-  else do
-    if not $ null dupNames
-    then report wp $ DuplicateArgumentNamesError dupNames
-    else forM_ (funcArgs f) $ \(_, argName) ->
-       when (argName `M.member` objs) $ report wp $ ArgumentNameShadowsObjectWarning argName $ objs M.! argName
-    result <- checkInstructions objs f (funcPure f) (reverse $ funcInput f) body
-    when (isPure && result /= reverse (funcOutput f)) $ report wp $ FunctionTypeDeclarationError f $ reverse result
-  where isPure = funcPure f
+      body     = funcBody f (error "ICE: tried to compile a built-in function")
+  when (funcPurity f == Pure && anyImpure body) $
+    report wp $ PureFunctionsContainsImpureCodeError $ funcName f
+  when (not $ null dupNames) $
+    report wp $ DuplicateArgumentNamesError dupNames
+  objs <- gets objects
+  for_ (funcArgs f) \(_, argName) ->
+    when (argName `M.member` objs) $
+      report wp $ ArgumentNameShadowsObjectWarning argName $ objs M.! argName
+  result <- processInstructions f (funcInput f) body
+  when (funcPurity f == Pure && result /= funcOutput f) $
+    report wp $ FunctionTypeDeclarationError f $ reverse result
 
-checkInstructions :: Monad m => ObjectMap -> Function -> Bool -> [Type] -> [WithLocation Instruction] -> CompilerT m [Type]
-checkInstructions objs f typeCheck = foldM $ checkInstruction objs f typeCheck
+processInstructions :: Monad m => Function -> [Type] -> [WithLocation Instruction] -> CompilerT m [Type]
+processInstructions context = foldM $ processInstruction context
 
-checkInstruction :: Monad m => ObjectMap -> Function -> Bool -> [Type] -> WithLocation Instruction -> CompilerT m [Type]
-checkInstruction _    _ _         stack (WL _ (RawBrainfuck _)) = return stack
-checkInstruction objs f typeCheck stack wp@(WL _ (FunctionCall n v)) =
-  case getFunction objs n of
-    Left err -> reportAndStop wp err
-    Right  g ->
-      if length (funcArgs g) /= length v
-      then report wp (FunctionCallWrongArgumentsNumberError g $ length v) >> return stack
-      else do
-        forM_ (zip (funcArgs g) v) $ \(arg@(kind, _), expr) -> do
-          let thisKind = case expr of
-                ConstantName cn -> parameterType kind cn
-                _               -> typeof <$> eval objs kind expr
-          case thisKind of
-            Left err -> report wp err
-            Right k  -> when (k /= kind) $ report wp $ FunctionCallWrongArgumentTypeError g arg k
-        if typeCheck
-        then case stripPrefix (reverse $ funcInput g) stack of
-               Nothing -> reportAndStop wp $ FunctionCallStackTypeError g $ reverse stack
-               Just ns -> return $ reverse (funcOutput g) ++ ns
-        else return stack
-  where parameterType k name =
-          case find (\(_, arg) -> arg == name) $ funcArgs f of
-            Just (kind, _) -> Right $ if kind `canCastTo` k then k else kind
-            Nothing        -> case objs M.!? name of
-              Just (WL _ (ValueObject   vo)) -> Right $ if typeof vo `canCastTo` k then k else typeof vo
-              Just other                     -> Left  $ ExpectedValueGotFunctionError name other
-              Nothing                        -> Left  $ ConstantNotFoundError name
-checkInstruction objs f typeCheck stack wp@(WL _ (Loop lb)) = do
-  newStack <- checkInstructions objs f typeCheck stack lb
-  when (typeCheck && newStack /= stack) $ reportAndStop wp $ BlockLoopNotStackNeutralError (stack, newStack)
-  return newStack
-checkInstruction objs f typeCheck stack wp@(WL _ (If ic ib)) = do
-  (cStackIn, cStackOut) <- foldM (guessStack objs f) ([], []) ic
-  when (cStackOut /= BFBool : cStackIn) $ report wp $ ConditionWrongTypeError (reverse cStackIn, reverse cStackOut)
-  newStack <- checkInstructions objs f typeCheck stack ib
-  when (typeCheck && newStack /= stack) $ reportAndStop wp $ BlockIfNotStackNeutralError (stack, newStack)
-  return newStack
-checkInstruction objs f typeCheck stack wp@(WL _ (While wc wb)) = do
-  (cStackIn, cStackOut) <- foldM (guessStack objs f) ([], []) wc
-  when (cStackOut /= BFBool : cStackIn) $ report wp $ ConditionWrongTypeError (reverse cStackIn, reverse cStackOut)
-  newStack <- checkInstructions objs f typeCheck stack wb
-  when (typeCheck && newStack /= stack) $ reportAndStop wp $ BlockWhileNotStackNeutralError (stack, newStack)
-  return newStack
+processInstruction :: Monad m => Function -> [Type] -> WithLocation Instruction -> CompilerT m [Type]
+processInstruction func stack wp@(WL _ instruction) = case instruction of
+  RawBrainfuck _ ->
+    pure stack
+  Loop loopBody -> do
+    newStack <- processInstructions func stack loopBody
+    when (shouldTypeCheck && newStack /= stack) $
+      report wp $ BlockLoopNotStackNeutralError (stack, newStack)
+    pure newStack
+  While whileCondition whileBody -> do
+    (cStackIn, cStackOut) <- foldM (guessStack func) ([], []) whileCondition
+    when (cStackOut /= BFBool : cStackIn) $
+      report wp $ ConditionWrongTypeError (reverse cStackIn, reverse cStackOut)
+    newStack <- processInstructions func stack whileBody
+    when (shouldTypeCheck && newStack /= stack) $
+      report wp $ BlockWhileNotStackNeutralError (stack, newStack)
+    pure newStack
+  If ifCondition ifBody -> do
+    (cStackIn, cStackOut) <- foldM (guessStack func) ([], []) ifCondition
+    when (cStackOut /= BFBool : cStackIn) $
+      report wp $ ConditionWrongTypeError (reverse cStackIn, reverse cStackOut)
+    newStack <- processInstructions func stack ifBody
+    when (shouldTypeCheck && newStack /= stack) $
+      report wp $ BlockIfNotStackNeutralError (stack, newStack)
+    pure newStack
+  FunctionCall targetName args -> do
+    target <- retrieveFunction wp targetName
+    when (length (funcArgs target) /= length args) $
+      report wp $ FunctionCallWrongArgumentsNumberError target $ length args
+    objs <- gets objects
+    for_ (zip (funcArgs target) args) \(arg@(kind, _), expr) -> do
+      let checkKind k = unless (k `canCastTo` kind) $
+            report wp $ FunctionCallWrongArgumentTypeError target arg k
+      case expr of
+        ConstantName name -> case find (\(_, argName) -> argName == name) (funcArgs func) of
+          Just (k, _) ->
+            checkKind k
+          Nothing -> case objs M.!? name of
+            Just (WL _ (ValueObject vo)) ->
+              checkKind (typeof vo)
+            Just other ->
+              report wp $ ExpectedValueGotFunctionError name other
+            Nothing ->
+              report wp $ ConstantNotFoundError name
+        _ -> do
+          result <- eval objs kind expr `onLeft` \err ->
+            fatal wp err
+          checkKind $ typeof result
+    case funcPurity func of
+      Impure -> pure stack
+      Pure -> case stripPrefix (funcInput target) stack of
+        Just ns -> pure $ funcOutput target ++ ns
+        Nothing -> do
+          report wp $ FunctionCallStackTypeError target $ reverse stack
+          pure stack
+  where
+    shouldTypeCheck = funcPurity func == Pure
 
+--------------------------------------------------------------------------------
+-- helpers
 
-
--- stack analysis
-
-guessStack :: Monad m => ObjectMap -> Function -> ([Type], [Type]) -> WithLocation Instruction -> CompilerT m ([Type], [Type])
-guessStack objs f s@(initStack, currentStack) wp@(WL _ (FunctionCall n _)) =
-  case getFunction objs n of
-    Left err -> report wp err >> return s
-    Right  g -> do
-      let missing = drop (length currentStack) $ reverse $ funcInput g
-          newInitStack = initStack ++ missing
-      newCurrentStack <- checkInstruction objs f True (currentStack ++ missing) wp
-      return (newInitStack, newCurrentStack)
-guessStack _ _ s wp = report wp (ConditionWrongInstructionError $ getEntry wp) >> return s
-
-
-
--- value casting
-
-cast :: Value -> Type -> Either Error Value
-cast (VChar c) BFInt = Right $ VInt $ ord c
-cast value kind
-  | typeof value == kind = Right value
-  | otherwise            = Left $ ImplicitCastError kind $ typeof value
+guessStack :: Monad m => Function -> ([Type], [Type]) -> WithLocation Instruction -> CompilerT m ([Type], [Type])
+guessStack func (initStack, currentStack) wp@(WL _ inst) = case inst of
+  FunctionCall n _ -> do
+    target <- retrieveFunction wp n
+    let missing = drop (length currentStack) $ funcInput target
+        newInitStack = initStack ++ missing
+    newCurrentStack <- processInstruction func (currentStack ++ missing) wp
+    pure (newInitStack, newCurrentStack)
+  _ ->
+    fatal wp (ConditionWrongInstructionError $ getEntry wp)
 
 canCastTo :: Type -> Type -> Bool
 BFChar `canCastTo` BFInt = True

@@ -1,70 +1,38 @@
-{- Parser.hs
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
-This file only exposes parseProgram, which takes a module name, the
-string content, and attempts to parse it. It returns either a parse
-error or a Program, which is simply a list of statements (see
-Grammar).
+{-|
+
+This module only exposes parseProgram, which takes a module name, the string
+content, and attempts to parse it. It returns either a parse error or a Program,
+which is simply a list of statements (see Grammar).
 
 -}
 
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-
 module Parser (parseProgram) where
 
+import Control.Arrow     (left)
+import Control.Monad     (void)
+import Data.These
+import Text.Parsec
+import Text.Parsec.Token qualified as P
 
+import Diagnostics
+import Grammar
+import Location
+import Misc
 
--- imports
-
-import           Control.Arrow     (left)
-import           Text.Parsec
-import qualified Text.Parsec.Token as P
-
-import           Diagnostics
-import           Grammar
-import           Misc
-import           Module
-
-
-
--- program
+--------------------------------------------------------------------------------
+-- exported parsing function
 
 parseProgram :: String -> String -> Either Diagnostic Program
 parseProgram = left toDiagnostic ... parse program
-  where toDiagnostic pe = addPosition (errorPos pe) $ ParseError $ show pe
+  where
+    toDiagnostic pe = addPosition (errorPos pe) $ ParseError $ show pe
+
+--------------------------------------------------------------------------------
+-- grammar
 
 program = whiteSpace *> statement `sepEndBy` many newline <* eof
-
-
-
--- language definition
-
-language = P.makeTokenParser P.LanguageDef { P.commentStart    = "/*"
-                                           , P.commentEnd      = "*/"
-                                           , P.commentLine     = "//"
-                                           , P.nestedComments  = True
-                                           , P.identStart      = char '_' <|> letter
-                                           , P.identLetter     = char '_' <|> alphaNum
-                                           , P.opStart         = parserZero
-                                           , P.opLetter        = parserZero
-                                           , P.reservedOpNames = []
-                                           , P.reservedNames   = ["if", "while", "loop", "include", "def", "const", "inline", "impure"]
-                                           , P.caseSensitive   = True
-                                           }
-
-whiteSpace = P.whiteSpace    language
-lexeme     = P.lexeme        language
-symbol     = P.symbol        language
-reserved   = P.reserved      language
-identifier = P.identifier    language
-parens     = P.parens        language
-braces     = P.braces        language
-brackets   = P.brackets      language
-commaSep   = P.commaSep      language
-cLiteral   = P.charLiteral   language
-sLiteral   = P.stringLiteral language
-iLiteral   = P.integer       language
-
-
 
 -- statement
 
@@ -83,31 +51,46 @@ include = do
 constant = do
   reserved "const"
   (t, n) <- variable
-  symbol "="
+  void $ symbol "="
   e <- expression
   return $ ConstantDecl $ Constant t n e
 
 function = do
   reserved "def"
-  k <- many $ choice keywords
-  let p = impure `notElem` k
-      l = inline `elem` k
-  n <- identifier
-  a <- parens $ commaSep variable
-  (i, o) <- option ([], []) $ do
+  (inlineKW, impureKW) <- fmap partitionHereThere $ many $ choice
+    [ This Inline <$ reserved "inline"
+    , That Impure <$ reserved "impure"
+    ]
+  rendering <- case inlineKW of
+    []  -> pure Block
+    [_] -> pure Inline
+    _   -> fail "expecting at most one 'inline' keyword"
+  purity <- case impureKW of
+    []  -> pure Pure
+    [_] -> pure Impure
+    _   -> fail "expecting at most one 'impure' keyword"
+  name <- identifier
+  args <- parens $ commaSep variable
+  (inputType, outputType) <- option ([], []) do
     i <- brackets $ commaSep typename
-    symbol "->"
+    void $ symbol "->"
     o <- brackets $ commaSep typename
     return (i, o)
-  b <- braces $ many instruction
-  return $ FunctionDecl $ Function n p l a i o $ const b
-
-
+  instructions <- braces $ many instruction
+  return $ FunctionDecl $ Function
+    { funcName = name
+    , funcPurity = purity
+    , funcRender = rendering
+    , funcArgs = args
+    , funcInput = reverse inputType
+    , funcOutput = reverse outputType
+    , funcBody = const instructions
+    }
 
 -- instructions
 
 instruction = do
-  pos  <- getPosition
+  pos <- getPosition
   addPosition pos <$> choice
     [ functionCall
     , ifb
@@ -142,8 +125,6 @@ rawBrainfuck = do
   s <- many1 $ lexeme $ oneOf brainfuckChars
   return $ RawBrainfuck s
 
-
-
 -- expressions
 
 expression = choice
@@ -153,35 +134,57 @@ expression = choice
   , LiteralInt . fromInteger  <$> iLiteral
   ] <?> "expression (constant name or literal)"
 
-
-
 -- variables and types
 
 typename = choice [pstring, pint, pchar, pbool] <?> "type name"
-  where pstring = BFString <$ lexeme (char 'S')
-        pint    = BFInt    <$ lexeme (char 'I')
-        pchar   = BFChar   <$ lexeme (char 'C')
-        pbool   = BFBool   <$ lexeme (char 'B')
+  where
+    pstring = BFString <$ lexeme (char 'S')
+    pint    = BFInt    <$ lexeme (char 'I')
+    pchar   = BFChar   <$ lexeme (char 'C')
+    pbool   = BFBool   <$ lexeme (char 'B')
 
 variable = do
   t <- typename
   n <- identifier
   return (t, n)
 
+--------------------------------------------------------------------------------
+-- parsec language definition
 
+language :: P.TokenParser ()
+language = P.makeTokenParser P.LanguageDef
+  { P.commentStart    = "/*"
+  , P.commentEnd      = "*/"
+  , P.commentLine     = "//"
+  , P.nestedComments  = True
+  , P.identStart      = char '_' <|> letter
+  , P.identLetter     = char '_' <|> alphaNum
+  , P.opStart         = parserZero
+  , P.opLetter        = parserZero
+  , P.reservedOpNames = []
+  , P.reservedNames   = ["if", "while", "loop", "include", "def", "const", "inline", "impure"]
+  , P.caseSensitive   = True
+  }
 
+whiteSpace = P.whiteSpace    language
+lexeme     = P.lexeme        language
+symbol     = P.symbol        language
+reserved   = P.reserved      language
+identifier = P.identifier    language
+parens     = P.parens        language
+braces     = P.braces        language
+brackets   = P.brackets      language
+commaSep   = P.commaSep      language
+cLiteral   = P.charLiteral   language
+sLiteral   = P.stringLiteral language
+iLiteral   = P.integer       language
+
+--------------------------------------------------------------------------------
 -- helpers
 
 addPosition :: SourcePos -> a -> WithLocation a
 addPosition p = WL $ SourceFile n l c
-  where n = sourceName   p
-        l = sourceLine   p
-        c = sourceColumn p
-
-inline = 0
-impure = 1
-keywords = [ inline <$ reserved "inline"
-           , impure <$ reserved "impure"
-           ]
-
-brainfuckChars = "+-,.<>[]#"
+  where
+    n = sourceName   p
+    l = sourceLine   p
+    c = sourceColumn p
