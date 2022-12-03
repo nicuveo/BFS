@@ -235,13 +235,20 @@ processInstruction func stack wp@(WL _ instruction) = case instruction of
 --------------------------------------------------------------------------------
 -- helpers
 
-guessStack :: Monad m => Function -> ([Type], [Type]) -> WithLocation Instruction -> CompilerT m ([Type], [Type])
+guessStack
+  :: Monad m
+  => Function
+  -> ([Type], [Type])
+  -> WithLocation Instruction
+  -> CompilerT m ([Type], [Type])
 guessStack func (initStack, currentStack) wp@(WL _ inst) = case inst of
   FunctionCall n _ -> do
     target <- retrieveFunction wp n
     let missing = drop (length currentStack) $ funcInput target
         newInitStack = initStack ++ missing
-    newCurrentStack <- processInstruction func (currentStack ++ missing) wp
+        -- enforce that we check the stack for consistency
+        alteredFunc = func { funcPurity = Pure }
+    newCurrentStack <- processInstruction alteredFunc (currentStack ++ missing) wp
     pure (newInitStack, newCurrentStack)
   _ ->
     fatal wp (ConditionWrongInstructionError $ getEntry wp)
