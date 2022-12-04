@@ -48,7 +48,7 @@ def inline b_to_i() [B] -> [I] {
 
 // Converts the current character to a boolean (trash 1).
 // A zero will be left unchanged, any non-zero value will be changed to a one.
-def impure i_to_b() [I] -> [B] {
+def impure inline i_to_b() [I] -> [B] {
   [[-]>+<]<
   [[-]>>+<<]<
   [[-]>>>+<<<]<
@@ -148,21 +148,85 @@ def impure inline xor() [B,B] -> [B] {
 ////////////////////////////////////////////////////////////////////////////////
 // char comparison
 
-def inline eqc() [C,C] -> [B] { nec not     }
-def inline nec() [C,C] -> [B] { subc c_to_b }
+// Returns true if the two top characters are the same (trash 1).
+def inline eqc() [C,C] -> [B] {
+  nec not
+}
 
-def        inline eqc_(C x)    [C]   -> [C,B] { dupc pushc(x) eqc }
-def        inline nec_(C x)    [C]   -> [C,B] { dupc pushc(x) nec }
+// Returns true if the two top characters are different (trash 1).
+def inline nec() [C,C] -> [B] {
+  subc c_to_b
+}
 
-def impure inline ltc()        [C,C] -> [B]   { [<[->>+>+<<<]>>>[-<<<+>>>]< not [-<[-]+<+>>]<<->-]< c_to_b }
-def        inline gtc()        [C,C] -> [B]   { swapc ltc   }
-def        inline lec()        [C,C] -> [B]   { gtc not     }
-def        inline gec()        [C,C] -> [B]   { ltc not     }
+// Similar to `eqc`, but compares the current value on the stack with the
+// provided argument (trash 1).
+// This function leaves the existing character unmodified.
+def inline eqc_(C x) [C] -> [C,B] {
+  dupc pushc(x) eqc
+}
 
-def        inline gtc_(C x)    [C]   -> [C,B] { dupc pushc(x) ltc }
-def        inline lec_(C x)    [C]   -> [C,B] { dupc pushc(x) gec }
-def        inline gec_(C x)    [C]   -> [C,B] { dupc pushc(x) lec }
-def        inline ltc_(C x)    [C]   -> [C,B] { dupc pushc(x) gtc }
+// Similar to `nec`, but compares the current value on the stack with the
+// provided argument (trash 1).
+// This function leaves the existing character unmodified.
+def inline nec_(C x) [C] -> [C,B] {
+  dupc pushc(x) nec
+}
+
+// Consumes both characters at the top of the stack, and pushes a
+// boolean that indicates whtehr the character at the top of the stack
+// is strictly smaller than the previous one (trash 2).
+def impure inline ltc() [C,C] -> [B] {
+  [<[->>+>+<<<]>>>[-<<<+>>>]< not [-<[-]+<+>>]<<->-]< c_to_b
+}
+
+// Consumes both characters at the top of the stack, and pushes a
+// boolean that indicates whtehr the character at the top of the stack
+// is strictly greater than the previous one (trash 2).
+def inline gtc() [C,C] -> [B] {
+  swapc ltc
+}
+
+// Consumes both characters at the top of the stack, and pushes a
+// boolean that indicates whtehr the character at the top of the stack
+// is smaller or equal or the previous one (trash 2).
+def inline lec() [C,C] -> [B] {
+  gtc not
+}
+
+// Consumes both characters at the top of the stack, and pushes a
+// boolean that indicates whtehr the character at the top of the stack
+// is greater or equal to the previous one (trash 2).
+def inline gec() [C,C] -> [B] {
+  ltc not
+}
+
+// Similar to `gtc`, but compares the current value on the stack with the
+// provided argument (trash 1).
+// This function leaves the existing character unmodified.
+def inline gtc_(C x) [C] -> [C,B] {
+  dupc pushc(x) ltc
+}
+
+// Similar to `lec`, but compares the current value on the stack with the
+// provided argument (trash 1).
+// This function leaves the existing character unmodified.
+def inline lec_(C x) [C] -> [C,B] {
+  dupc pushc(x) gec
+}
+
+// Similar to `gec`, but compares the current value on the stack with the
+// provided argument (trash 1).
+// This function leaves the existing character unmodified.
+def inline gec_(C x) [C] -> [C,B] {
+  dupc pushc(x) lec
+}
+
+// Similar to `ltc`, but compares the current value on the stack with the
+// provided argument (trash 1).
+// This function leaves the existing character unmodified.
+def inline ltc_(C x) [C] -> [C,B] {
+  dupc pushc(x) gtc
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -260,6 +324,15 @@ def printc_ord() [C] -> [C] {
   pushc( 10) swapc divc swapc
   pushc( 10) swapc modc
   _ploop3
+}
+
+def impure printb() [B] -> [B] {
+  dupc
+  [ [-] prints("true") ]
+  popc
+  dupc not
+  [ [-] prints("false") ]
+  popc
 }
 
 def impure printi() [I] -> [I] {

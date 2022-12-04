@@ -43,7 +43,11 @@ function run() {
     fi
     mv a.out $afile
 
-    elapsed=`{ time $afile < $test.in > $outfile; } 2>&1 | sed -n 's/real\t*//p'`
+    if test -f "$test.in" ; then
+        elapsed=`{ time $afile < $test.in > $outfile; } 2>&1 | sed -n 's/real\t*//p'`
+    else
+        elapsed=`{ time $afile            > $outfile; } 2>&1 | sed -n 's/real\t*//p'`
+    fi
     if [ -n "$(diff $test.out $outfile)" ] ; then
         printf "%-32s[\033[1;31mKO\033[0m] output diff:\n" $name
         diff $test.out $outfile

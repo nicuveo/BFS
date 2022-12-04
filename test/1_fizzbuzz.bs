@@ -1,7 +1,7 @@
 const C upper_bound = 20
 
 def inline below_upper_bound() [C] -> [C,B] {
-    dupc pushc(upper_bound) swapc lec
+    lec_(upper_bound)
 }
 
 def can_be_divided_by(C n) [C] -> [C] {

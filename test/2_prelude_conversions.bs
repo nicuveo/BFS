@@ -1,0 +1,69 @@
+include "common/check"
+
+def test_c_to_b(C c) {
+  pushc(c)
+  c_to_b check("c_to_b")
+  printb endl
+  popb
+}
+
+def test_c_to_i(C c) {
+  pushc(c)
+  c_to_i check("c_to_i")
+  printi endl
+  popi
+}
+
+def test_b_to_c(B b) {
+  pushb(b)
+  b_to_c check("b_to_c")
+  printc_ord endl
+  popc
+}
+
+def test_b_to_i(B b) {
+  pushb(b)
+  b_to_i check("b_to_i")
+  printi endl
+  popi
+}
+
+def test_i_to_c(I i) {
+  pushi(i)
+  i_to_c check("i_to_c")
+  printc_ord endl
+  popc
+}
+
+def test_i_to_b(I i) {
+  pushi(i)
+  i_to_b check("i_to_b")
+  printb endl
+  popb
+}
+
+def main() {
+  test_c_to_b(0)
+  test_c_to_b(1)
+  test_c_to_b('*')
+
+  test_c_to_i(0)
+  test_c_to_i(1)
+  test_c_to_i('*')
+
+  test_b_to_c(false)
+  test_b_to_c(true)
+
+  test_b_to_i(false)
+  test_b_to_i(true)
+
+  test_i_to_c(0)
+  test_i_to_c(1)
+  test_i_to_c(256)
+  test_i_to_c(65536)
+
+  test_i_to_b(0)
+  test_i_to_b(1)
+  test_i_to_b(256)
+  test_i_to_b(65536)
+}

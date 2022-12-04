@@ -1,0 +1,43 @@
+include "common/check"
+
+def test_dupc(C c) {
+  pushc(c)
+  dupc check("dupc")
+  printc_ord endl popc
+  printc_ord endl popc
+}
+
+def test_dupi(I i) {
+  pushi(i)
+  dupi check("dupi")
+  printi endl popi
+  printi endl popi
+}
+
+def test_swapc(C c1, C c2) {
+  pushc(c1) pushc(c2)
+  swapc check("swapc")
+  printc_ord endl popc
+  printc_ord endl popc
+}
+
+def test_swapi(I i1, I i2) {
+  pushi(i1) pushi(i2)
+  swapi check("swapi")
+  printi endl popi
+  printi endl popi
+}
+
+def main() {
+  test_dupc(0)
+  test_dupc(1)
+  test_dupc('*')
+
+  test_dupi(0)
+  test_dupi(1)
+  test_dupi(256)
+  test_dupi(65536)
+
+  test_swapc(1,2)
+  test_swapi(1,2)
+}
