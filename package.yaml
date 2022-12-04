@@ -1,0 +1,78 @@
+name: BFS
+version: 0.1.0
+synopsis: A (made-up forth-like language)-to-Brainfuck transpiler
+description: See README at <https://github.com/sol/hpack#readme>
+category: Language
+author: Antoine Leblanc
+license: MIT
+license-file: LICENSE
+
+data-files: src/Prelude.bs
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-uni-patterns
+  - -Wmissing-home-modules
+  - -Wredundant-constraints
+  - -fwarn-tabs
+  - -O2
+  - -threaded -rtsopts -with-rtsopts=-N4
+
+default-extensions:
+  - AllowAmbiguousTypes
+  - BangPatterns
+  - BlockArguments
+  - ConstraintKinds
+  - DataKinds
+  - DefaultSignatures
+  - DeriveDataTypeable
+  - DeriveFoldable
+  - DeriveFunctor
+  - DeriveGeneric
+  - DeriveLift
+  - DeriveTraversable
+  - DerivingVia
+  - FlexibleContexts
+  - FlexibleInstances
+  - FunctionalDependencies
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - ImportQualifiedPost
+  - InstanceSigs
+  - LambdaCase
+  - MultiParamTypeClasses
+  - MultiWayIf
+  - NamedFieldPuns
+  - OverloadedStrings
+  - PackageImports
+  - RankNTypes
+  - RecordWildCards
+  - RoleAnnotations
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - StrictData
+  - TupleSections
+  - TypeApplications
+  - TypeFamilies
+  - TypeOperators
+  - ViewPatterns
+
+dependencies:
+  - base >= 4.7 && < 5
+  - containers
+  - directory
+  - filepath
+  - mtl
+  - parsec
+  - split
+  - these
+  - transformers
+  - transformers-base
+  - unordered-containers
+
+executables:
+  bfs:
+    source-dirs: src
+    main: Main.hs
