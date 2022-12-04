@@ -1,4 +1,7 @@
-module Eval (eval) where
+module Eval
+  ( eval
+  , canCastTo
+  ) where
 
 import Data.Char
 import Data.HashMap.Strict qualified as M
@@ -17,6 +20,9 @@ eval objs kind = \case
     BFChar -> Right $ VChar c
     BFBool -> Right $ VBool $ ord c /= 0
     _      -> Left  $ CharLiteralError kind c
+  LiteralBool b -> case kind of
+    BFBool -> Right $ VBool b
+    _      -> Left  $ BoolLiteralError kind b
   LiteralInt i -> case kind of
     BFChar   -> if i < 0 || i > 255
                 then Left  $ IntLiteralError kind i
@@ -30,8 +36,16 @@ eval objs kind = \case
         WL _ (ValueObject val) -> cast val kind
         wp                     -> Left $ ExpectedValueGotFunctionError n wp
 
+canCastTo :: Type -> Type -> Bool
+BFChar `canCastTo` BFInt  = True
+BFChar `canCastTo` BFBool = True
+BFInt  `canCastTo` BFBool = True
+a      `canCastTo` b      = a == b
+
 cast :: Value -> Type -> Either Error Value
-cast (VChar c) BFInt = Right $ VInt $ ord c
+cast (VChar c) BFInt  = Right $ VInt  $ ord c
+cast (VChar c) BFBool = Right $ VBool $ ord c /= 0
+cast (VInt  i) BFBool = Right $ VBool $ i /= 0
 cast value kind
   | typeof value == kind = Right value
   | otherwise            = Left $ ImplicitCastError kind $ typeof value

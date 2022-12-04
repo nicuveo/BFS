@@ -53,6 +53,7 @@ data Expression
   = ConstantName String
   | LiteralString String
   | LiteralChar Char
+  | LiteralBool Bool
   | LiteralInt Int
   deriving (Show)
 

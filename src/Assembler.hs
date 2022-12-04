@@ -71,6 +71,7 @@ assembleVerbosely objs =
       pure $ filter (`notElem` brainfuckChars) $ name ++ case expr of
         LiteralInt i -> "=" ++ show i
         LiteralChar c -> "=" ++ show c
+        LiteralBool b -> "=" ++ (if b then "true" else "false")
         LiteralString s -> "=" ++ show s
         ConstantName n
           | Just (WL _ (ValueObject v)) <- M.lookup n objs -> "=" ++ show v

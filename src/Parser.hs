@@ -131,6 +131,7 @@ expression = choice
   [ ConstantName  <$> identifier
   , LiteralString <$> sLiteral
   , LiteralChar   <$> cLiteral
+  , LiteralBool   <$> bLiteral
   , LiteralInt . fromInteger  <$> iLiteral
   ] <?> "expression (constant name or literal)"
 
@@ -162,7 +163,7 @@ language = P.makeTokenParser P.LanguageDef
   , P.opStart         = parserZero
   , P.opLetter        = parserZero
   , P.reservedOpNames = []
-  , P.reservedNames   = ["if", "while", "loop", "include", "def", "const", "inline", "impure"]
+  , P.reservedNames   = ["if", "while", "loop", "include", "def", "const", "inline", "impure", "true", "false"]
   , P.caseSensitive   = True
   }
 
@@ -178,6 +179,7 @@ commaSep   = P.commaSep      language
 cLiteral   = P.charLiteral   language
 sLiteral   = P.stringLiteral language
 iLiteral   = P.integer       language
+bLiteral   = choice [False <$ reserved "false", True <$ reserved "true"]
 
 --------------------------------------------------------------------------------
 -- helpers

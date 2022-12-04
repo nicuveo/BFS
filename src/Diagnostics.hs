@@ -1,4 +1,9 @@
-module Diagnostics where
+module Diagnostics
+  ( Diagnostics
+  , Diagnostic
+  , Error (..)
+  , isError
+  ) where
 
 import Text.Printf
 
@@ -6,8 +11,8 @@ import Grammar
 import Location
 import Object
 
-type Diagnostic  = WithLocation Error
 type Diagnostics = [Diagnostic]
+type Diagnostic  = WithLocation Error
 
 data Error
   = ConstantAlreadyDefinedError String (WithLocation Object)
@@ -15,6 +20,7 @@ data Error
   | ArgumentNameShadowsObjectWarning String (WithLocation Object)
   | IntLiteralError Type Int
   | CharLiteralError Type Char
+  | BoolLiteralError Type Bool
   | StringLiteralError Type String
   | ImplicitCastError Type Type
   | FunctionTypeDeclarationError Function [Type]
@@ -45,6 +51,7 @@ instance Show Error where
   show (ArgumentNameShadowsObjectWarning n wo)         = printf "warning: argument %s shadows object:\n  %s" n $ show wo
   show (IntLiteralError    k x)                        = printf "type error: int constant %d cannot cast to %s"    x $ show k
   show (CharLiteralError   k x)                        = printf "type error: char constant %c cannot cast to %s"   x $ show k
+  show (BoolLiteralError   k x)                        = printf "type error: bool constant %s cannot cast to %s"   (renderBool x) (show k)
   show (StringLiteralError k x)                        = printf "type error: string constant %s cannot cast to %s" x $ show k
   show (ImplicitCastError  d s)                        = printf "type error: cannot cast %v to %v" (show s) $ show d
   show (FunctionTypeDeclarationError f ks)             = printf "error: inferred function result stack for function %s (%s) is different from declared result stack (%s)" (funcName f) (show ks) $ show $ funcOutput f
@@ -64,3 +71,7 @@ instance Show Error where
   show (DuplicateArgumentNamesError as)                = printf "error: duplicate argument names: %s" $ unwords as
   show (ParseError s)                                  = "error: " ++ s
   show (FileNotFoundError f)                           = "error: could not find a file named " ++ f
+
+renderBool :: Bool -> String
+renderBool True  = "true"
+renderBool False = "false"

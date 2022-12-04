@@ -22,26 +22,38 @@ preludeFile = readFile =<< getDataFileName "src/Prelude.bs"
 
 builtinFunctions :: ObjectMap
 builtinFunctions = M.fromList do
-  f <- [pushc, pushi, set, inc, dec, prints] ++ dupFunctions ++ rollFunctions
+  f <- [pushc, pushb, pushi, set, inc, dec, prints] ++ dupFunctions ++ rollFunctions
   pure (funcName f, builtinLocation $ FunctionObject f)
 
 --------------------------------------------------------------------------------
 -- core implementation
 
 pushc :: Function
-pushc = Function "pushc" Impure Inline [(BFChar, "c")] [] [BFChar] pushc_
-  where pushc_ [("c", VChar c)] = [builtinLocation $ RawBrainfuck $ ">[-]" ++ replicate (ord c) '+']
-        pushc_ _ = error "ICE"
+pushc = Function "pushc" Impure Inline [(BFChar, "c")] [] [BFChar] \case
+  [("c", VChar c)] ->
+    pure $ builtinLocation $ RawBrainfuck $ ">[-]" ++ replicate (ord c) '+'
+  _ ->
+    error "ICE: built-in function pushc wasn't properly typechecked"
+
+pushb :: Function
+pushb = Function "pushb" Impure Inline [(BFBool, "b")] [] [BFBool] \case
+  [("b", VBool b)] ->
+    pure $ builtinLocation $ RawBrainfuck $ ">[-]" ++ if b then "+" else ""
+  _ ->
+    error "ICE: built-in function pushb wasn't properly typechecked"
 
 pushi :: Function
-pushi = Function "pushi" Impure Inline [(BFInt, "x")] [] [BFInt] pushi_
-  where pushi_ [("x", VInt x)] = [builtinLocation $ RawBrainfuck $ concat [">[-]" ++ replicate i '+' | i <- decompose x]]
-        pushi_ _ = error "ICE"
-        decompose x = [ mod (div x 16777216) 256 .|. (if x < 0 then 128 else 0)
-                      , mod (div x    65536) 256
-                      , mod (div x      256) 256
-                      , mod      x           256
-                      ]
+pushi = Function "pushi" Impure Inline [(BFInt, "x")] [] [BFInt] \case
+  [("x", VInt x)] ->
+    pure $ builtinLocation $ RawBrainfuck $ concat [">[-]" ++ replicate i '+' | i <- decompose x]
+  _ ->
+    error "ICE: built-in function pushi wasn't properly typechecked"
+  where
+    decompose x = [ mod (div x 16777216) 256 .|. (if x < 0 then 128 else 0)
+                  , mod (div x    65536) 256
+                  , mod (div x      256) 256
+                  , mod      x           256
+                  ]
 
 set :: Function
 set = Function "set" Impure Inline [(BFChar, "x")] [BFChar] [BFChar] set_

@@ -218,10 +218,9 @@ processInstruction func stack wp@(WL _ instruction) = case instruction of
               report wp $ ExpectedValueGotFunctionError name other
             Nothing ->
               report wp $ ConstantNotFoundError name
-        _ -> do
-          result <- eval objs kind expr `onLeft` \err ->
+        _ ->
+          void $ eval objs kind expr `onLeft` \err ->
             fatal wp err
-          checkKind $ typeof result
     case funcPurity func of
       Impure -> pure stack
       Pure -> case stripPrefix (funcInput target) stack of
@@ -252,7 +251,3 @@ guessStack func (initStack, currentStack) wp@(WL _ inst) = case inst of
     pure (newInitStack, newCurrentStack)
   _ ->
     fatal wp (ConditionWrongInstructionError $ getEntry wp)
-
-canCastTo :: Type -> Type -> Bool
-BFChar `canCastTo` BFInt = True
-a      `canCastTo` b     = a == b
