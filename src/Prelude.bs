@@ -1,30 +1,172 @@
-// byte stuff
+/* BFS Prelude
 
-def impure inline clear()      [C]   -> [C]   { [-]                 }
+A set of basic functions, implicitly available to every BFS program.
 
-def impure inline popc()       [C]   -> []    { clear <             }
-def impure inline popi()       [I]   -> []    { popc popc popc popc }
+By convention, most functions that exist on different types will use be
+differentiated using a 'c' suffix for characters, a 'b' suffix for booleans, and
+a 'i' suffix for 32-bit integers. See for instance `popc`, `popb`, and
+`popi`. Some binary functions have a variant that takes the second value as a
+compile-time argument, in which case the name is suffixed by '_'.
 
-def        inline dupc()       [C]   -> [C,C] { dupc1               }
-def        inline dupi()       [I]   -> [I,I] { dupi1               }
+Most functions freely use space on the right of the top of the stack as
+temporary space. All functions who do so will clear that temporary space before
+returning. When relevant, function comments will indicate the maximum amount of
+temporary space used in the format "(trash n)".
 
-def        inline swapc()      [C,C] -> [C,C] { rollc2(1)           }
-def        inline swapi()      [I,I] -> [I,I] { rolli2(1)           }
+All internal functions not meant for external use have a name that starts with
+'_'. At time of writing BFS doesn't offer a mechanism to differentiate between
+public and private functions.
 
-def impure inline c_to_b()     [C]   -> [B]   { [>+<[-]] >[-<+>]< }
-def impure inline c_to_i()     [C]   -> [I]   { >>> rollc4(3)     }
-def impure inline b_to_c()     [B]   -> [C]   {                   }
-def impure inline b_to_i()     [B]   -> [I]   { c_to_i            }
+*/
 
-def impure inline push_true()  []    -> [B]   { >+ }
-def impure inline push_false() []    -> [B]   { >  }
 
-def impure inline not()        [B]   -> [B]   { [>+<[-]]+>[-<->]< }
+////////////////////////////////////////////////////////////////////////////////
+// conversions between types
+
+// Converts the current character to a boolean (trash 1).
+// A zero will be left unchanged, any non-zero value will be changed to a one.
+def impure inline c_to_b() [C] -> [B] {
+  [>+<[-]] >[-<+>]<
+}
+
+// Converts the current character to an int32 (trash 0).
+// The character becomes the lowest byte.
+def impure inline c_to_i() [C] -> [I] {
+  [>>>+<<<-]>>>
+}
+
+// Converts the current boolean to a character (trash 0).
+// This function is a no-op, only here to appease the type-checker.
+def impure inline b_to_c() [B] -> [C] {
+}
+
+// Converts the current boolean to an integer (trash 0).
+// The character becomes the lowest byte.
+def inline b_to_i() [B] -> [I] {
+  b_to_c c_to_i
+}
+
+// Converts the current character to a boolean (trash 1).
+// A zero will be left unchanged, any non-zero value will be changed to a one.
+def impure i_to_b() [I] -> [B] {
+  [[-]>+<]<
+  [[-]>>+<<]<
+  [[-]>>>+<<<]<
+  [[-]>>>>+<<<<]
+  >>>>[[-]<<<<+>>>>]<<<<
+}
+
+// Converts the current int32 into a character (trash 0).
+// This only keeps the lowest byte of the int.
+def impure inline i_to_c() [I]-> [C] {
+  <[-]<[-]<[-]>>>[-<<<+>>>]<<<
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// basic stack manipulation
+
+// Sets the current byte to zero (trash 0).
+def impure inline clear() [C] -> [C] {
+  [-]
+}
+
+// Pops one character from the stack (trash 0).
+def impure inline popc() [C] -> [] {
+  clear <
+}
+
+// Pops one boolean from the stack (trash 0).
+def impure inline popb() [B] -> [] {
+  popc
+}
+
+// Pops one int32 from the stack (trash 0).
+def impure inline popi() [I] -> [] {
+  popc popc popc popc
+}
+
+// Duplicates the current character (trash 1).
+// Simple alias for the built-in "dupc1".
+def inline dupc() [C] -> [C,C] {
+  dupc1
+}
+
+// Duplicates the current integer (trash 1).
+// Simple alias for the built-in "dupi1".
+def inline dupi() [I] -> [I,I] {
+  dupi1
+}
+
+// Duplicates the current boolean (trash 1).
+def inline impure dupb() [B] -> [B,B] {
+  dupc1
+}
+
+// Swap the two characters at the top of the stack (trash 1?).
+// Convenient alias for a built-in roll.
+def inline swapc() [C,C] -> [C,C] {
+  rollc2(1)
+}
+
+// Swap the two integers at the top of the stack (trash 1?).
+// Convenient alias for a built-in roll.
+def inline swapi() [I,I] -> [I,I] {
+  rolli2(1)
+}
+
+// Swap the two booleans at the top of the stack (trash 1?).
+def impure inline swapb() [B] -> [B,B] {
+  rollc2(1)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// boolean operations
+
+// Negates the current boolean (trash 1).
+def impure inline not() [B] -> [B] {
+  [>+<[-]]+>[-<->]<
+}
+
+// Perform a logic "and" on the top two booleans (trash 2).
+def impure inline and() [B,B] -> [B] {
+  mulc c_to_b
+}
+
+// Perform a logic "or" on the top two booleans (trash 2).
+def impure inline or() [B,B] -> [B] {
+  addc c_to_b
+}
+
+// Perform a logic "xor" on the top two booleans (trash 2).
+def impure inline xor() [B,B] -> [B] {
+  nec
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// char comparison
+
+def inline eqc() [C,C] -> [B] { nec not     }
+def inline nec() [C,C] -> [B] { subc c_to_b }
+
+def        inline eqc_(C x)    [C]   -> [C,B] { dupc pushc(x) eqc }
+def        inline nec_(C x)    [C]   -> [C,B] { dupc pushc(x) nec }
 
 def impure inline ltc()        [C,C] -> [B]   { [<[->>+>+<<<]>>>[-<<<+>>>]< not [-<[-]+<+>>]<<->-]< c_to_b }
 def        inline gtc()        [C,C] -> [B]   { swapc ltc   }
 def        inline lec()        [C,C] -> [B]   { gtc not     }
 def        inline gec()        [C,C] -> [B]   { ltc not     }
+
+def        inline gtc_(C x)    [C]   -> [C,B] { dupc pushc(x) ltc }
+def        inline lec_(C x)    [C]   -> [C,B] { dupc pushc(x) gec }
+def        inline gec_(C x)    [C]   -> [C,B] { dupc pushc(x) lec }
+def        inline ltc_(C x)    [C]   -> [C,B] { dupc pushc(x) gtc }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// char arithmetic
 
 def impure inline addc()       [C,C] -> [C]   { [-<+>]<         }
 def impure inline subc()       [C,C] -> [C]   { <[->-<]>[-<+>]< }
@@ -33,32 +175,42 @@ def impure        divc()       [C,C] -> [C]   { > rollc3(1) dupc2 gec [-<<<+>[->
 def impure        modc()       [C,C] -> [C]   {             dupc2 gec [-<<   [->>+>+<<<]>>>[-<<<+>>>]<[-<->]< dupc2 gec]<<[-]>[-<+>]< }
 def impure        divmodc()    [C,C] -> [C,C] { > rollc3(1) dupc2 gec [-<<<+>[->>+>+<<<]>>>[-<<<+>>>]<[-<->]< dupc2 gec]<<[-]>[-<+>]< }
 
-def impure inline i_to_c()     [I]   -> [C]   { rollc4(1) popc popc popc }
 
-def        inline nec()        [C,C] -> [B]   { subc c_to_b }
-def        inline eqc()        [C,C] -> [B]   { nec not     }
+////////////////////////////////////////////////////////////////////////////////
+// int comparison
 
-def impure inline and()        [B,B] -> [B]   { mulc c_to_b }
-def impure inline or()         [B,B] -> [B]   { addc c_to_b }
-def impure inline xor()        [B,B] -> [B]   { nec         }
+def inline eqi() [I,I] -> [B] { nei not     }
+def inline nei() [I,I] -> [B] { subi i_to_b }
 
-def        inline eqc_(C x)    [C]   -> [C,B] { dupc pushc(x) eqc }
-def        inline nec_(C x)    [C]   -> [C,B] { dupc pushc(x) nec }
-def        inline gtc_(C x)    [C]   -> [C,B] { dupc pushc(x) ltc }
-def        inline lec_(C x)    [C]   -> [C,B] { dupc pushc(x) gec }
-def        inline gec_(C x)    [C]   -> [C,B] { dupc pushc(x) lec }
-def        inline ltc_(C x)    [C]   -> [C,B] { dupc pushc(x) gtc }
+def inline eqi_(I x) [I] -> [I,B] { dupi pushi(x) eqi }
+def inline nei_(I x) [I] -> [I,B] { dupi pushi(x) nei }
 
-def impure i_to_b() [I] -> [B] {
-    [[-]>+<]<
-    [[-]>>+<<]<
-    [[-]>>>+<<<]<
-    [[-]>>>>+<<<<]
-    >>>>[[-]<<<<+>>>>]<<<<
+/*
+def impure inline lti() [I,I] -> [B] {
+  // start with highest byte
+  <<<<<<<
+  // [<A1>, A2, A3, A4, B1, B2, B3, B4]
+  [->>>>>>>>+>+<<<<<<<<<]
+  >>>>>>>>>[-<<<<<<<<<+>>>>>>>>>]<<<<<
+  // [A1, A2, A3, A4, <B1>, B2, B3, B4, A1, 0]
+  [->>>>>+>+<<<<<<]
+  >>>>>>[-<<<<<<+>>>>>>]<
+  // [A1, A2, A3, A4, B1, B2, B3, B4, A1, <B1>, 0]
 }
 
+def inline gti() [I,I] -> [B] { swapc lti }
+def inline lei() [I,I] -> [B] { gti not   }
+def inline gei() [I,I] -> [B] { lti not   }
 
-// int math
+def inline gti_(I x) [I] -> [I,B] { dupi pushi(x) lti }
+def inline lei_(I x) [I] -> [I,B] { dupi pushi(x) gei }
+def inline gei_(I x) [I] -> [I,B] { dupi pushi(x) lei }
+def inline lti_(I x) [I] -> [I,B] { dupi pushi(x) gti }
+*/
+
+
+////////////////////////////////////////////////////////////////////////////////
+// int arithmetic
 
 def impure addi() [I,I] -> [I] {
   <<<<[->>>>>>+                        <<<<<<]>>>>[->>+ dupc not [-<<+>>] popc <<]>>[-<<<<<<+>>>>>>]<<<
@@ -73,9 +225,6 @@ def impure subi() [I,I] -> [I] {
   [->>+ dupc not [-<<->>] popc <<]<<<<[->>>>>> dupc not [-<<+>>] popc -<<<<<<]>>>>>>[-<<<<<<+>>>>>>] <[>+<-]>[-<-<+>>] <<<
   [->>+ dupc not [-<<->>] popc <<]<<<<[->>>>>>                        -<<<<<<]>>>>>>[-<<<<<<+>>>>>>] <[-]               <<
 }
-
-def inline nei() [I,I] -> [B] { subi i_to_b }
-def inline eqi() [I,I] -> [B] { nei not     }
 
 def muli() [I,I] -> [I] {
   pushi(0)  // [c,i,r]
@@ -96,48 +245,13 @@ def muli() [I,I] -> [I] {
 }
 
 
-
-
-
-// io
+////////////////////////////////////////////////////////////////////////////////
+// input / output
 
 def impure inline readc() [C] -> [C] { , }
+def impure inline push_read() [] -> [C] { > , }
 def impure inline printc_chr() [C] -> [C] { . }
 def        inline endl()                  { prints("\n") }
-
-
-def inline _print_digit() [C] -> [C] { dupc inc('0') printc_chr popc }
-def inline _out_digit() [C] -> [C] { inc('0') printc_chr clear }
-
-def impure inline _cleanp() {
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-  gtc_(9) [-<----------<+>>] < rollcn(10,1)
-}
-
-def impure inline _cleann() {
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
-}
-
-def impure _ploop3() [C,C,C] -> [] {
-  <<[_out_digit > _out_digit <] > [_out_digit] > _out_digit <<<
-}
 
 def printc_ord() [C] -> [C] {
   dupc dupc dupc
@@ -183,4 +297,41 @@ def impure printi() [I] -> [I] {
   <<<<<<<<<<
   popc popc popc popc
   popi
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// internal helpers
+
+def inline _print_digit() [C] -> [C] { dupc inc('0') printc_chr popc }
+def inline _out_digit() [C] -> [C] { inc('0') printc_chr clear }
+
+def impure inline _cleanp() {
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+  gtc_(9) [-<----------<+>>] < rollcn(10,1)
+}
+
+def impure inline _cleann() {
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+  gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
+}
+
+def impure _ploop3() [C,C,C] -> [] {
+  <<[_out_digit > _out_digit <] > [_out_digit] > _out_digit <<<
 }
