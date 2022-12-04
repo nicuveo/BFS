@@ -11,6 +11,10 @@ import Location
 data Object
   = FunctionObject Function
   | ValueObject Value
-  deriving (Show)
+
+instance Show Object where
+  show = \case
+    FunctionObject f -> "function: " ++ show f
+    ValueObject    v -> "value: "    ++ show v
 
 type ObjectMap = M.HashMap String (WithLocation Object)
