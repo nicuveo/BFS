@@ -44,8 +44,8 @@ import Parser
 
 compile :: Monad m => FileResolver m -> String -> m (These Diagnostics ObjectMap)
 compile resolver filename = runCompiler deps do
-  processInclude (WL BuiltIn "Prelude")
-  processInclude (WL CommandLineArgument filename)
+  processFile (WL BuiltIn "Prelude")
+  processFile (WL CommandLineArgument filename)
   where
     deps = Dependencies resolver
 
@@ -117,30 +117,8 @@ retrieveFunction wl name = do
 --------------------------------------------------------------------------------
 -- step by step analysis
 
-processStatement :: Monad m => WithLocation Statement -> CompilerT m ()
-processStatement wl = case wl of
-  WL l (Include filename) ->
-    processInclude $ WL l filename
-  WL _ (ConstantDecl n) -> do
-    objs <- gets objects
-    let cName = constName n
-    value <- eval objs (constType n) (constExpr n) `onLeft` \err ->
-      fatal wl err
-    when (cName `M.member` objs) $
-      fatal wl $ ConstantAlreadyDefinedError cName $ objs M.! cName
-    registerObject cName $ wl $> ValueObject value
-  WL _ (FunctionDecl f) -> do
-    objs <- gets objects
-    let fName = funcName f
-    when (fName `M.member` objs) $
-      report wl $ FunctionAlreadyDefinedError fName $ objs M.! fName
-    -- we catch any error while processing the function, to return more errors:
-    -- at the level module, we re-throw if any non-warning was issued
-    processFunction (wl $> f) `catchError` \_ -> pure ()
-    registerObject fName $ wl $> FunctionObject f
-
-processInclude :: Monad m => WithLocation String -> CompilerT m ()
-processInclude w@(WL _ filename) = do
+processFile :: Monad m => WithLocation String -> CompilerT m ()
+processFile w@(WL _ filename) = do
   (_, diagnostics) <- listen $ do
     resolver <- asks fileResolver
     (name, content) <- lift (resolver filename) `onNothingM`
@@ -149,10 +127,37 @@ processInclude w@(WL _ filename) = do
     unless (name `M.member` cache) do
       program <- parseProgram name content `onLeft` \e ->
         tell [e] >> shortCircuit
-      traverse_ processStatement program
+      sequence_ =<< traverse processStatement program
       registerModule name
   when (any isError diagnostics) $
     shortCircuit
+
+processStatement :: Monad m => WithLocation Statement -> CompilerT m (CompilerT m ())
+processStatement wl = case wl of
+  WL l (Include filename) -> do
+    processFile $ WL l filename
+    pure $ pure ()
+  WL _ (ConstantDecl n) -> do
+    objs <- gets objects
+    let cName = constName n
+    when (cName `M.member` objs) $
+      fatal wl $ ConstantAlreadyDefinedError cName $ objs M.! cName
+    value <- eval objs (constType n) (constExpr n) `onLeft` \err ->
+      fatal wl err
+    registerObject cName $ wl $> ValueObject value
+    pure $ pure ()
+  WL _ (FunctionDecl f) -> do
+    objs <- gets objects
+    let fName = funcName f
+    when (fName `M.member` objs) $
+      report wl $ FunctionAlreadyDefinedError fName $ objs M.! fName
+    -- we register the object first, and delay the checking of the function, so
+    -- that it can refer to functions defined later in the file
+    registerObject fName $ wl $> FunctionObject f
+    pure $
+      -- we catch any error while processing the function, to return more errors:
+      -- at the level module, we re-throw if any non-warning was issued
+      processFunction (wl $> f) `catchError` \_ -> pure ()
 
 processFunction :: Monad m => WithLocation Function -> CompilerT m ()
 processFunction wp@(WL _ f) = do
