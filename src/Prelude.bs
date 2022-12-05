@@ -172,30 +172,30 @@ def inline nec_(C x) [C] -> [C,B] {
   dupc pushc(x) nec
 }
 
-// Consumes both characters at the top of the stack, and pushes a
-// boolean that indicates whtehr the character at the top of the stack
-// is strictly smaller than the previous one (trash 2).
+// Consumes both characters at the top of the stack, and pushes a boolean that
+// indicates whether the character at the top of the stack is strictly smaller
+// than the previous one (trash 2).
 def impure inline ltc() [C,C] -> [B] {
   [<[->>+>+<<<]>>>[-<<<+>>>]< not [-<[-]+<+>>]<<->-]< c_to_b
 }
 
-// Consumes both characters at the top of the stack, and pushes a
-// boolean that indicates whtehr the character at the top of the stack
-// is strictly greater than the previous one (trash 2).
+// Consumes both characters at the top of the stack, and pushes a boolean that
+// indicates whether the character at the top of the stack is strictly greater
+// than the previous one (trash 2).
 def inline gtc() [C,C] -> [B] {
   swapc ltc
 }
 
-// Consumes both characters at the top of the stack, and pushes a
-// boolean that indicates whtehr the character at the top of the stack
-// is smaller or equal or the previous one (trash 2).
+// Consumes both characters at the top of the stack, and pushes a boolean that
+// indicates whether the character at the top of the stack is smaller or equal
+// or the previous one (trash 2).
 def inline lec() [C,C] -> [B] {
   gtc not
 }
 
-// Consumes both characters at the top of the stack, and pushes a
-// boolean that indicates whtehr the character at the top of the stack
-// is greater or equal to the previous one (trash 2).
+// Consumes both characters at the top of the stack, and pushes a boolean that
+// indicates whether the character at the top of the stack is greater or equal
+// to the previous one (trash 2).
 def inline gec() [C,C] -> [B] {
   ltc not
 }
@@ -249,20 +249,11 @@ def inline nei() [I,I] -> [B] { subi i_to_b }
 def inline eqi_(I x) [I] -> [I,B] { dupi pushi(x) eqi }
 def inline nei_(I x) [I] -> [I,B] { dupi pushi(x) nei }
 
-/*
-def impure inline lti() [I,I] -> [B] {
-  // start with highest byte
-  <<<<<<<
-  // [<A1>, A2, A3, A4, B1, B2, B3, B4]
-  [->>>>>>>>+>+<<<<<<<<<]
-  >>>>>>>>>[-<<<<<<<<<+>>>>>>>>>]<<<<<
-  // [A1, A2, A3, A4, <B1>, B2, B3, B4, A1, 0]
-  [->>>>>+>+<<<<<<]
-  >>>>>>[-<<<<<<+>>>>>>]<
-  // [A1, A2, A3, A4, B1, B2, B3, B4, A1, <B1>, 0]
+def impure lti() [I,I] -> [B] {
+  dupi2 subi popc popc popc pushc(128) lec
 }
 
-def inline gti() [I,I] -> [B] { swapc lti }
+def inline gti() [I,I] -> [B] { swapi lti }
 def inline lei() [I,I] -> [B] { gti not   }
 def inline gei() [I,I] -> [B] { lti not   }
 
@@ -270,7 +261,6 @@ def inline gti_(I x) [I] -> [I,B] { dupi pushi(x) lti }
 def inline lei_(I x) [I] -> [I,B] { dupi pushi(x) gei }
 def inline gei_(I x) [I] -> [I,B] { dupi pushi(x) lei }
 def inline lti_(I x) [I] -> [I,B] { dupi pushi(x) gti }
-*/
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -405,6 +395,6 @@ def impure inline _cleann() {
   gtc_(200) [-<++++++++++<->>] < rollcn(10,1)
 }
 
-def impure _ploop3() [C,C,C] -> [] {
+def impure inline _ploop3() [C,C,C] -> [] {
   <<[_out_digit > _out_digit <] > [_out_digit] > _out_digit <<<
 }
