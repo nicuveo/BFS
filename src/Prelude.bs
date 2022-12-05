@@ -239,6 +239,20 @@ def impure        divc()       [C,C] -> [C]   { > rollc3(1) dupc2 gec [-<<<+>[->
 def impure        modc()       [C,C] -> [C]   {             dupc2 gec [-<<   [->>+>+<<<]>>>[-<<<+>>>]<[-<->]< dupc2 gec]<<[-]>[-<+>]< }
 def impure        divmodc()    [C,C] -> [C,C] { > rollc3(1) dupc2 gec [-<<<+>[->>+>+<<<]>>>[-<<<+>>>]<[-<->]< dupc2 gec]<<[-]>[-<+>]< }
 
+def inline maxc() [C,C] -> [C] {
+  if (dupc2 gtc) {
+    swapc
+  }
+  popc
+}
+
+def inline minc() [C,C] -> [C] {
+  if (dupc2 ltc) {
+    swapc
+  }
+  popc
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // int comparison
@@ -250,7 +264,7 @@ def inline eqi_(I x) [I] -> [I,B] { dupi pushi(x) eqi }
 def inline nei_(I x) [I] -> [I,B] { dupi pushi(x) nei }
 
 def impure lti() [I,I] -> [B] {
-  dupi2 subi popc popc popc pushc(128) lec
+  subi popc popc popc pushc(128) lec
 }
 
 def inline gti() [I,I] -> [B] { swapi lti }
@@ -295,6 +309,20 @@ def muli() [I,I] -> [I] {
   }
   rolli3(2)
   popi
+  popi
+}
+
+def inline maxi() [I,I] -> [I] {
+  if (dupi2 gti) {
+    swapi
+  }
+  popi
+}
+
+def inline mini() [I,I] -> [I] {
+  if (dupi2 lti) {
+    swapi
+  }
   popi
 }
 
