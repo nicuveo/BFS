@@ -7,7 +7,7 @@ author: Antoine Leblanc
 license: MIT
 license-file: LICENSE
 
-data-files: src/Prelude.bs
+data-files: src-bfs/Prelude.bs
 
 ghc-options:
   - -Wall
@@ -64,15 +64,21 @@ dependencies:
   - containers
   - directory
   - filepath
+  - monad-loops
   - mtl
   - parsec
+  - primitive
   - split
   - these
   - transformers
   - transformers-base
   - unordered-containers
+  - vector
 
 executables:
   bfs:
-    source-dirs: src
+    source-dirs: src-bfs
+    main: Main.hs
+  bfd:
+    source-dirs: src-bfd
     main: Main.hs

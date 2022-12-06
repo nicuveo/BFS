@@ -58,8 +58,9 @@ makeRelative = \case
 -- parsing the code
 
 decompose :: String -> [Code]
-decompose = either (error . show) id . parse code "<optimizer>" . filter (`elem` "[]+-.,<>")
+decompose = either (error . show) id . parse code "<optimizer>" . filter (`elem` validChars)
   where
+    validChars = "[]+-.,<>" :: String
     code = many $ choice
       [ Input  <$ char ','
       , Output <$ char '.'
