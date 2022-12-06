@@ -79,28 +79,31 @@ newtype BF a
 run :: Tape -> [Code] -> BF ()
 run v = traverse_ \case
   Input -> do
-    i <- gets currentPos
+    Position i m <- get
     c <- liftIO $ getChar `catchIOError` \e ->
       if isEOFError e then pure $ toEnum 0 else ioError e
     liftIO $ V.unsafeWrite v i $ toEnum $ ord c
+    when (i > m) $ put $ Position i i
   Output -> do
     i <- gets currentPos
     c <- liftIO $ V.read v i
     liftIO $ putChar $ chr $ fromEnum c
   Minus -> do
-    i <- gets currentPos
+    Position i m <- get
     liftIO $ V.modify v (subtract 1) i
+    when (i > m) $ put $ Position i i
   Plus -> do
-    i <- gets currentPos
+    Position i m <- get
     liftIO $ V.modify v (+1) i
+    when (i > m) $ put $ Position i i
   Left -> do
     Position i m <- get
     let r = mod (i-1) tapeSize
-    put $ Position r (max m r)
+    put $ Position r m
   Right -> do
     Position i m <- get
     let r = mod (i+1) tapeSize
-    put $ Position r (max m r)
+    put $ Position r m
   Loop l -> do
     let nonZero = do
           i <- gets currentPos
