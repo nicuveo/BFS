@@ -131,7 +131,7 @@ instance Show Value where
 
 isImpure :: Instruction -> Bool
 isImpure (FunctionCall _ _) = False
-isImpure (RawBrainfuck _  ) = True
+isImpure (RawBrainfuck s  ) = any (/= '#') s
 isImpure (Loop         b  ) = anyImpure b
 isImpure (If           c b) = anyImpure c || anyImpure b
 isImpure (While        c b) = anyImpure c || anyImpure b
