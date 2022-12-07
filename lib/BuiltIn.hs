@@ -85,7 +85,7 @@ prints = Function "prints" Impure Block [(BFString, "s")] [] [] dec_
 
 
 rollFunctions :: [Function]
-rollFunctions   = rollcn : rollin : concat [[rollc n, rolli n] | n <- [2 .. 9]]
+rollFunctions   = rollcn : rollin : concat [[rollc n, rolli n] | n <- [2 .. 99]]
   where rollcn  = Function "rollcn" Impure Inline [(BFInt, "n"), (BFInt, "s")] [] [] $ rolln 1
         rollin  = Function "rollin" Impure Inline [(BFInt, "n"), (BFInt, "s")] [] [] $ rolln 4
         rollc n = Function ("rollc" ++ show n) Impure Inline [(BFInt, "s")] (replicate n BFChar) (replicate n BFChar) $ roll 1 n
@@ -109,7 +109,7 @@ rollCode n s = builtinLocation . RawBrainfuck <$> [ ">[-]" ++ replicate s '+'
 
 
 dupFunctions :: [Function]
-dupFunctions   = dupcn : dupin : concat [[dupc n, dupi n] | n <- [1 .. 9]]
+dupFunctions   = dupcn : dupin : concat [[dupc n, dupi n] | n <- [1 .. 99]]
   where dupcn  = Function "dupcn" Impure Inline [(BFInt, "n")] [] [] $ dupn 1
         dupin  = Function "dupin" Impure Inline [(BFInt, "n")] [] [] $ dupn 4
         dupc n = Function ("dupc" ++ show n) Impure Inline [] (replicate n BFChar) (replicate (2*n) BFChar) $ dup n
