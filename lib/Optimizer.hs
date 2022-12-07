@@ -12,9 +12,15 @@ parses it, and performs a small number of simple optimizations.
   reordered, for simplification
 * all code after the last input / output is dead code
 
+`safeOptimize` does not attempt to perform dead code removal, and can
+be used for snippets within a program
+
 -}
 
-module Optimizer (optimize) where
+module Optimizer
+  ( optimize
+  , safeOptimize
+  ) where
 
 import Control.Monad.State
 import Data.Foldable
@@ -33,6 +39,9 @@ import Misc
 
 optimize :: String -> String
 optimize = render . cleanEnd . cleanStart . simplify . merge . decompose
+
+safeOptimize :: String -> String
+safeOptimize = render . simplify . merge . decompose
 
 --------------------------------------------------------------------------------
 -- internal representation

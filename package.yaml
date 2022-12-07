@@ -1,13 +1,13 @@
 name: BFS
 version: 0.1.0
 synopsis: A (made-up forth-like language)-to-Brainfuck transpiler
-description: See README at <https://github.com/sol/hpack#readme>
+description: See README at <https://github.com/nicuveo/bfs#readme>
 category: Language
 author: Antoine Leblanc
 license: MIT
 license-file: LICENSE
 
-data-files: src-bfs/Prelude.bs
+data-files: lib/Prelude.bs
 
 ghc-options:
   - -Wall
@@ -17,8 +17,6 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wredundant-constraints
   - -fwarn-tabs
-  - -O2
-  - -threaded -rtsopts -with-rtsopts=-N4
 
 default-extensions:
   - AllowAmbiguousTypes
@@ -68,17 +66,37 @@ dependencies:
   - mtl
   - parsec
   - primitive
+  - safe
   - split
+  - strict
   - these
   - transformers
   - transformers-base
   - unordered-containers
   - vector
 
+library:
+  source-dirs: lib
+
+_exe: &exe
+  ghc-options:
+    - -O2
+    - -threaded -rtsopts
+  dependencies: BFS
+
 executables:
-  bfs:
-    source-dirs: src-bfs
+  bfs: {
+    <<: *exe,
+    source-dirs: src-bfs,
     main: Main.hs
-  bfd:
-    source-dirs: src-bfd
+  }
+  bfd: {
+    <<: *exe,
+    source-dirs: src-bfd,
     main: Main.hs
+  }
+  bff: {
+    <<: *exe,
+    source-dirs: src-bff,
+    main: Main.hs
+  }
