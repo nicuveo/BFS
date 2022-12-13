@@ -312,6 +312,13 @@ def muli() [I,I] -> [I] {
   popi
 }
 
+def modi() [I,I] -> [I] {
+  while (dupi2 gei) {
+    dupi2 subi swapi popi
+  }
+  swapi popi
+}
+
 def inline maxi() [I,I] -> [I] {
   if (dupi2 gti) {
     swapi
