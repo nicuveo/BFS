@@ -295,9 +295,12 @@ def impure subi() [I,I] -> [I] {
 }
 
 def muli() [I,I] -> [I] {
+  if (dupi2 gti) {
+    swapi
+  }
   pushi(0)  // [c,i,r]
   rolli3(2) // [i,r,c]
-  while(dupi pushi(0) nei) {
+  while(nei_(0)) {
     rolli3(2) // [r,c,i]
     dupi      // [r,c,i,i]
     rolli4(3) // [c,i,i,r]
