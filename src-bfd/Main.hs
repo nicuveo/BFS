@@ -112,7 +112,8 @@ run v = traverse_ \case
     whileM_ nonZero $ run v l
   Debug -> do
     Position i m <- get
-    s <- concat <$> for [0..m] \x -> do
+    let e = max i m
+    s <- concat <$> for [0..e] \x -> do
       c <- liftIO $ V.unsafeRead v x
       pure $ if x == i then printf "<%2x>" c else printf " %2x " c
     liftIO $ putStrLn $ "[" ++ s ++ "]"
