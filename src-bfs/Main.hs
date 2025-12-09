@@ -13,7 +13,7 @@ import BuiltIn
 import Compiler
 
 fileResolver :: String -> IO (Maybe (String, String))
-fileResolver "Prelude" = Just . ("Prelude.bs",) <$> preludeFile
+fileResolver "Prelude" = pure $ Just ("Prelude.bs", preludeFile)
 fileResolver filename  = do
   let rfn = if ".bs" `L.isSuffixOf` filename
             then filename

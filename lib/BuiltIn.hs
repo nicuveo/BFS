@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module BuiltIn
   ( preludeFile
   , builtinFunctions
@@ -5,6 +7,7 @@ module BuiltIn
 
 import Data.Bits
 import Data.Char
+import Data.FileEmbed
 import Data.HashMap.Strict qualified as M
 import Data.List           qualified as L
 
@@ -12,13 +15,12 @@ import Grammar
 import Location
 import Object
 
-import Paths_BFS
 
 --------------------------------------------------------------------------------
 -- available builtins
 
-preludeFile :: IO String
-preludeFile = readFile =<< getDataFileName "src/Prelude.bs"
+preludeFile :: String
+preludeFile = $(makeRelativeToProject "lib/Prelude.bs" >>= embedStringFile)
 
 builtinFunctions :: ObjectMap
 builtinFunctions = M.fromList do

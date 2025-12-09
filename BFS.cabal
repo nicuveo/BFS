@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -14,8 +14,6 @@ maintainer:     Antoine Leblanc
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
-data-files:
-    lib/Prelude.bs
 
 library
   exposed-modules:
@@ -77,6 +75,7 @@ library
       base >=4.7 && <5
     , containers
     , directory
+    , file-embed
     , filepath
     , monad-loops
     , mtl
@@ -142,6 +141,7 @@ executable bfd
     , base >=4.7 && <5
     , containers
     , directory
+    , file-embed
     , filepath
     , monad-loops
     , mtl
@@ -207,6 +207,7 @@ executable bff
     , base >=4.7 && <5
     , containers
     , directory
+    , file-embed
     , filepath
     , monad-loops
     , mtl
@@ -272,6 +273,7 @@ executable bfs
     , base >=4.7 && <5
     , containers
     , directory
+    , file-embed
     , filepath
     , monad-loops
     , mtl

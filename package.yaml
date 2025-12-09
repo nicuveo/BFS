@@ -7,8 +7,6 @@ author: Antoine Leblanc
 license: MIT
 license-file: LICENSE
 
-data-files: lib/Prelude.bs
-
 ghc-options:
   - -Wall
   - -Wcompat
@@ -62,6 +60,7 @@ dependencies:
   - containers
   - directory
   - filepath
+  - file-embed
   - monad-loops
   - mtl
   - parsec
